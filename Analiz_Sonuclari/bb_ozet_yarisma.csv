@@ -1,0 +1,7 @@
+Class,count,median_w,median_h,median_area,mean_area
+Abdominal aortic aneurysm,2875,82.0,79.0,6318.0,7391.4
+Compatible with acute appendicitis,2229,22.0,21.0,480.0,642.0
+Compatible with acute cholecystitis,1262,64.0,71.0,4964.0,5357.1
+Compatible with acute diverticulitis,322,39.0,35.0,1672.0,2817.0
+Compatible with acute pancreatitis,2335,84.0,61.0,5254.0,7163.8
+Kidney stone,1029,12.0,12.0,150.0,211.0
