@@ -18,7 +18,7 @@ _env = os.environ.get  # kısa takma ad
 # YOLLAR
 # ---------------------------------------------------------------------------
 ROOT      = Path(_env("ABDOMEN_PROJECT_ROOT", str(Path(__file__).resolve().parents[1])))
-DATA_ROOT = Path(_env("ABDOMEN_DATA_ROOT",    str(ROOT.parent)))
+DATA_ROOT = Path(_env("ABDOMEN_DATA_ROOT",    str(ROOT)))
 RAW_TRAIN_DIR = Path(_env("ABDOMEN_TRAIN_DIR",  str(DATA_ROOT / "Eğitim Verisi")))
 RAW_TEST_DIR  = Path(_env("ABDOMEN_TEST_DIR",   str(DATA_ROOT / "Yarışma Veri Seti")))
 BILGI_XLSX    = Path(_env("ABDOMEN_BILGI_XLSX", str(DATA_ROOT / "Bilgi.xlsx")))

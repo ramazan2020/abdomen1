@@ -6,6 +6,7 @@ değiştirilebilir ve tekrar üretilebilirlik korunur.
 """
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, List, Sequence, Tuple
@@ -27,7 +28,9 @@ from .config import DEFAULT_WINDOWS, Window, TARGET_SPACING_XYZ
 # ---------------------------------------------------------------------------
 def read_dicom(path: Path) -> FileDataset:
     """pydicom wrapper — InvalidDICOM hatalarını hızlı yakalamak için."""
-    return pydicom.dcmread(str(path))
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", message=".*excess padding.*", category=UserWarning)
+        return pydicom.dcmread(str(path))
 
 
 def dicom_to_hu(ds: FileDataset) -> np.ndarray:
@@ -97,9 +100,6 @@ def load_series(case_dir: Path) -> CTSeries:
     else:
         z_sp = float(getattr(datasets[0], "SliceThickness", 1.0) or 1.0)
 
-    image_ids = [int(Path(p).stem) for p in dcm_paths]
-    # image_ids sıralama order'ı dosya adından değil sorted datasets'ten gelmeli
-    # (dosya adı Image Id ile eşleşiyor, datasets zaten sıralı)
     image_ids = [int(Path(dcm_paths[i]).stem) for i, _ in enumerate(datasets)]
 
     return CTSeries(

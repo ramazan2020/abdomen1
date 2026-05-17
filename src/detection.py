@@ -89,6 +89,9 @@ def export_yolo_dataset(fold: int,
         if p.exists():
             shutil.rmtree(p)
         p.mkdir(parents=True, exist_ok=True)
+    # YOLO stale cache dosyalarını temizle (labels/ altında kalır, shutil.rmtree etkilemez)
+    for cache in (fold_dir / "labels").glob("*.cache"):
+        cache.unlink(missing_ok=True)
 
     manifest = pd.read_csv(SPLIT_DIR / "manifest.csv")
     train_cases = set(pd.read_csv(SPLIT_DIR / f"fold{fold}_train.csv")["Case Number"])
@@ -141,7 +144,9 @@ def _write_slice_png(row: pd.Series, out_dir: Path) -> Tuple[Path, int, int]:
     out_path = out_dir / f"{stem}.png"
     # OpenCV BGR bekler — kanallarımız [abdomen, pancreas, bone], bilgi kanal
     # sıralamasından bağımsız olduğu için direkt kaydediyoruz.
-    cv2.imwrite(str(out_path), img)
+    ok = cv2.imwrite(str(out_path), img)
+    if not ok:
+        raise RuntimeError(f"cv2.imwrite başarısız oldu: {out_path}")
     return out_path, img.shape[0], img.shape[1]
 
 
@@ -162,6 +167,8 @@ def _write_yolo_label(bboxes_raw: str, h: int, w: int, out: Path) -> None:
             try:
                 sid, x1, y1, x2, y2 = (int(float(v)) for v in parts)
             except (ValueError, TypeError):
+                continue
+            if not (0 <= sid <= 5):
                 continue
             # Geçersiz BB koordinatları
             if x2 <= x1 or y2 <= y1:
@@ -199,6 +206,20 @@ def train_yolo(fold: int, cfg=DEFAULT_DET, project: str = "runs/det") -> Path:
     if not (fold_dir / "dataset.yaml").exists():
         export_yolo_dataset(fold)
 
+    # Label'ı olan ama görüntüsü eksik dosyaları tespit et
+    missing = []
+    for split in ("train", "val"):
+        for lbl in (fold_dir / "labels" / split).glob("*.txt"):
+            img = fold_dir / "images" / split / (lbl.stem + ".png")
+            if not img.exists():
+                missing.append(img)
+    if missing:
+        raise FileNotFoundError(
+            f"{len(missing)} görüntü eksik (export sırasında cv2.imwrite başarısız olmuş). "
+            f"İlk örnek: {missing[0]}\n"
+            "export_yolo_dataset() tekrar çalıştırılmalı."
+        )
+
     # MPS → CUDA → CPU öncelik sırası
     if torch.backends.mps.is_available():
         device = "mps"
@@ -230,7 +251,9 @@ def train_yolo(fold: int, cfg=DEFAULT_DET, project: str = "runs/det") -> Path:
         cache=False,
         amp=True,
     )
-    return Path(project) / run_name / "weights" / "best.pt"
+    # Ultralytics exist_ok=False ile run ismini otomatik suffix'ler (fold0_yolov8x → fold0_yolov8x2 vb.)
+    # Bu nedenle sabit run_name yerine trainer'ın gerçek save_dir'ini kullanıyoruz.
+    return Path(model.trainer.save_dir) / "weights" / "best.pt"
 
 
 # ---------------------------------------------------------------------------
