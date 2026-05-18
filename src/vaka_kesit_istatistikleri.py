@@ -16,7 +16,7 @@ BASE = Path(os.environ.get(
     
 XLSX = BASE / "Bilgi.xlsx"
 DIRS = {
-    "Eğitim":  BASE / "Eğitim Verisi.zip",   # açılmış dizin
+    "Eğitim":  BASE / "Eğitim Verisi",   # açılmış dizin
     "Yarışma": BASE / "Yarışma Veri Seti",
 }
 

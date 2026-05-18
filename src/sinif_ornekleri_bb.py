@@ -23,7 +23,7 @@ BASE = Path(os.environ.get(
 ))
 
     
-TRAIN_DIR = BASE / "Eğitim Verisi.zip"
+TRAIN_DIR = BASE / "Eğitim Verisi"
 TEST_DIR = BASE / "Yarışma Veri Seti"
 OUT = BASE / "Analiz_Sonuclari" / "grafikler" / "sinif_ornekleri_bb.png"
 
