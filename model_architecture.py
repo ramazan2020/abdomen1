@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import SimpleITK as sitk
+sitk.ProcessObject.SetGlobalWarningDisplay(False)
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -238,8 +239,8 @@ class FastRSNADataset(Dataset):
 
 # Top-level fonksiyon: ProcessPoolExecutor worker'larında pickle'lanabilmesi için
 # sınıf içinde veya lambda olarak tanımlanamaz.
-def _read_and_hu(args):
-    """DICOM oku + HU dönüşümü. Resize yok — GPU'da ana süreçte yapılır."""
+def _read_and_hu(args, target=(128, 128, 128)):
+    """DICOM oku + HU dönüşümü + CPU resize. Worker'da biter, 4 MB float16 döner."""
     pid, train_images_dir, cache_dir = args
     out_path = os.path.join(cache_dir, f'{pid}.npy')
     if os.path.exists(out_path):
@@ -264,8 +265,12 @@ def _read_and_hu(args):
     except Exception:
         return pid, None
 
-    # (D, H, W) float32, HU values already applied by SimpleITK
+    # HU clipping + normalizasyon
     volume = sitk.GetArrayFromImage(image).astype(np.float32)
     volume = np.clip(volume, -150, 250)
-    volume = (volume + 150) / 400.0  # [0.0, 1.0] float32
-    return pid, volume
+    volume = (volume + 150) / 400.0
+
+    # CPU'da resize — 400+ MB yerine 4 MB float16 döner, RAM patlamaz
+    t = torch.from_numpy(volume).unsqueeze(0).unsqueeze(0)  # [1,1,D,H,W]
+    t = F.interpolate(t, size=target, mode='trilinear', align_corners=False)
+    return pid, t.squeeze().numpy().astype(np.float16)
