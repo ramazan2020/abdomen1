@@ -1,17 +1,11 @@
-
-
-import torch
-import torch.nn as nn
-from monai.networks.nets import resnet18
 import os
-import glob
 import numpy as np
-import pydicom
+import SimpleITK as sitk
 import torch
 import torch.nn as nn
-from torch.utils.data import Dataset
-import torch
 import torch.nn.functional as F
+from torch.utils.data import Dataset
+from monai.networks.nets import resnet18
 
 class GradCAM3D:
     def __init__(self, model, target_layer):
@@ -22,7 +16,7 @@ class GradCAM3D:
         
         # Katman çıktılarını ve gradyanlarını yakalamak için hook'ları bağlıyoruz
         self.target_layer.register_forward_hook(self.forward_hook)
-        self.target_layer.register_backward_hook(self.backward_hook)
+        self.target_layer.register_full_backward_hook(self.backward_hook)
 
     def forward_hook(self, module, input, output):
         self.activations = output
@@ -79,32 +73,25 @@ class RSNA20233DDataset(Dataset):
         patient_dir = os.path.join(self.base_path, str(patient_id))
         if not os.path.exists(patient_dir):
             return None
-        
-        series_ids = os.listdir(patient_dir)
+
+        # sorted() ile seri seçimi tekrarlanabilir hale geliyor
+        series_ids = sorted(os.listdir(patient_dir))
         if len(series_ids) == 0:
             return None
-        
-        # Baseline ve kararlılık için hastanın ilk serisini seçiyoruz
-        chosen_series = series_ids[0]
-        series_dir = os.path.join(patient_dir, chosen_series)
-        dcm_files = glob.glob(os.path.join(series_dir, "*.dcm"))
-        
-        if len(dcm_files) == 0:
+
+        series_dir = os.path.join(patient_dir, series_ids[0])
+        reader = sitk.ImageSeriesReader()
+        dicom_names = reader.GetGDCMSeriesFileNames(series_dir)
+        if not dicom_names:
             return None
-        
-        # DICOM dosyalarını Instance Number'a göre sıralama (Z-Aksı doğruluğu için)
-        slices = [pydicom.dcmread(f) for f in dcm_files]
-        slices.sort(key=lambda x: int(x.InstanceNumber) if hasattr(x, 'InstanceNumber') else 0)
-        
-        # 3D Hacim Oluşturma (H, W, D)
-        volume = np.stack([s.pixel_array for s in slices], axis=-1).astype(np.float32)
-        
-        # HU (Hounsfield Unit) Dönüşümü (Slope & Intercept)
-        for i, s in enumerate(slices):
-            slope = getattr(s, 'RescaleSlope', 1.0)
-            intercept = getattr(s, 'RescaleIntercept', 0.0)
-            volume[..., i] = volume[..., i] * slope + intercept
-            
+        reader.SetFileNames(dicom_names)
+        try:
+            image = reader.Execute()
+        except Exception:
+            return None
+
+        # (D, H, W) float32, HU values already applied by SimpleITK
+        volume = sitk.GetArrayFromImage(image).astype(np.float32)
         return volume
 
     def __getitem__(self, idx):
@@ -205,3 +192,80 @@ class RSNAResNetCBAMClassifier(nn.Module):
         # Sınıflandırma kafası: Yarışmadaki 13 sınıfın tahmin logitlerini üret
         logits = self.custom_classifier(x)
         return logits
+
+
+class FastRSNADataset(Dataset):
+    TARGETS = [
+        'bowel_healthy', 'bowel_injury',
+        'extravasation_healthy', 'extravasation_injury',
+        'kidney_healthy', 'kidney_low', 'kidney_high',
+        'liver_healthy', 'liver_low', 'liver_high',
+        'spleen_healthy', 'spleen_low', 'spleen_high',
+    ]
+
+    def __init__(self, df, cache_dir, augment=False):
+        valid = [pid for pid in df['patient_id']
+                 if os.path.exists(os.path.join(cache_dir, f'{pid}.npy'))]
+        self.df        = df[df['patient_id'].isin(valid)].reset_index(drop=True)
+        self.cache_dir = cache_dir
+        self.augment   = augment
+        dropped = len(df) - len(self.df)
+        if dropped:
+            print(f'[FastRSNADataset] {dropped} hasta cache bulunamadi, atlandi.')
+
+    def __len__(self):
+        return len(self.df)
+
+    def _augment(self, vol):
+        if np.random.rand() < 0.5:
+            vol = np.flip(vol, axis=0).copy()
+        if np.random.rand() < 0.5:
+            vol = np.rot90(vol, k=np.random.randint(1, 4), axes=(0, 1)).copy()
+        if np.random.rand() < 0.2:
+            vol = np.clip(vol + np.random.normal(0, 0.05, vol.shape).astype(np.float32), 0, 1)
+        return vol
+
+    def __getitem__(self, idx):
+        row = self.df.iloc[idx]
+        pid = int(row['patient_id'])
+        vol = np.load(os.path.join(self.cache_dir, f'{pid}.npy')).astype(np.float32)
+        if self.augment:
+            vol = self._augment(vol)
+        image  = torch.tensor(vol).unsqueeze(0)  # [1, 128, 128, 128]
+        labels = torch.tensor(row[self.TARGETS].values.astype(np.float32))
+        return image, labels
+
+
+# Top-level fonksiyon: ProcessPoolExecutor worker'larında pickle'lanabilmesi için
+# sınıf içinde veya lambda olarak tanımlanamaz.
+def _read_and_hu(args):
+    """DICOM oku + HU dönüşümü. Resize yok — GPU'da ana süreçte yapılır."""
+    pid, train_images_dir, cache_dir = args
+    out_path = os.path.join(cache_dir, f'{pid}.npy')
+    if os.path.exists(out_path):
+        return pid, None
+
+    patient_dir = os.path.join(train_images_dir, str(pid))
+    try:
+        series_ids = sorted(os.listdir(patient_dir))
+    except FileNotFoundError:
+        return pid, None
+    if not series_ids:
+        return pid, None
+
+    series_dir = os.path.join(patient_dir, series_ids[0])
+    reader = sitk.ImageSeriesReader()
+    dicom_names = reader.GetGDCMSeriesFileNames(series_dir)
+    if not dicom_names:
+        return pid, None
+    reader.SetFileNames(dicom_names)
+    try:
+        image = reader.Execute()
+    except Exception:
+        return pid, None
+
+    # (D, H, W) float32, HU values already applied by SimpleITK
+    volume = sitk.GetArrayFromImage(image).astype(np.float32)
+    volume = np.clip(volume, -150, 250)
+    volume = (volume + 150) / 400.0  # [0.0, 1.0] float32
+    return pid, volume
