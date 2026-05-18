@@ -3,11 +3,17 @@ Vaka başına kesit istatistikleri:
   1) Annotasyonlu kesit sayısı (medyan) — Bilgi.xlsx'ten
   2) Toplam DICOM kesit sayısı (medyan ve maks) — dosya sisteminden
 """
+import os
 from pathlib import Path
 import pandas as pd
 
 # ---- YOLLAR ----
-BASE = Path("/sessions/hopeful-elegant-mendel/mnt/abdomen")
+BASE = Path(os.environ.get(
+    "TR_ABDOMEN_BASE",
+    r"/Users/ramazanpolat/Desktop/datasets/abdomen"
+))
+
+    
 XLSX = BASE / "Bilgi.xlsx"
 DIRS = {
     "Eğitim":  BASE / "Eğitim Verisi.zip",   # açılmış dizin

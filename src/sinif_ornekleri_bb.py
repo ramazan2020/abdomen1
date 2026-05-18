@@ -7,6 +7,7 @@ Sınıf başına örnek CT kesiti + Bounding Box overlay.
 - BB'yi kırmızı dikdörtgen olarak üstüne çizer.
 - 10 sınıf için 2x5 grid çıkarır.
 """
+import os
 from pathlib import Path
 
 import matplotlib.patches as patches
@@ -15,8 +16,13 @@ import numpy as np
 import pandas as pd
 import pydicom
 
-# ---- YOLLAR ----
-BASE = Path("/sessions/hopeful-elegant-mendel/mnt/abdomen")
+# ---- VERİYİ YÜKLE ----
+BASE = Path(os.environ.get(
+    "TR_ABDOMEN_BASE",
+    r"/Users/ramazanpolat/Desktop/datasets/abdomen"
+))
+
+    
 TRAIN_DIR = BASE / "Eğitim Verisi.zip"
 TEST_DIR = BASE / "Yarışma Veri Seti"
 OUT = BASE / "Analiz_Sonuclari" / "grafikler" / "sinif_ornekleri_bb.png"

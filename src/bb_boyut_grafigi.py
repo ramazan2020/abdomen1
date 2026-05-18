@@ -5,6 +5,7 @@ Bounding Box boyut dağılımı — çok panelli görselleştirme.
   3) Genişlik vs yükseklik scatter (log ölçekli)
   4) Log10 alan (piksel²) histogramı
 """
+import os
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -12,7 +13,11 @@ import numpy as np
 import pandas as pd
 
 # ---- VERİYİ YÜKLE ----
-BASE = Path("/sessions/hopeful-elegant-mendel/mnt/abdomen")
+BASE = Path(os.environ.get(
+    "TR_ABDOMEN_BASE",
+    r"/Users/ramazanpolat/Desktop/datasets/abdomen"
+))
+
 OUT = BASE / "Analiz_Sonuclari" / "grafikler" / "bb_boyut_dagilimi.png"
 sheets = pd.read_excel(BASE / "Bilgi.xlsx", sheet_name=None)
 
@@ -74,7 +79,7 @@ ax.grid(alpha=0.3)
 ax = axes[0, 1]
 order = train_bb.groupby("Class")["sqrt_area"].median().sort_values().index.tolist()
 data = [train_bb.loc[train_bb["Class"] == c, "sqrt_area"].values for c in order]
-bp = ax.boxplot(data, vert=False, tick_labels=order, showfliers=False,
+bp = ax.boxplot(data, vert=False, labels=order, showfliers=False,
                 patch_artist=True)
 for patch in bp["boxes"]:
     patch.set_facecolor("#4c72b0")
