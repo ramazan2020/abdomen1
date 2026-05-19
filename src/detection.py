@@ -70,7 +70,8 @@ def _process_manifest_row(args: tuple):
 
 def export_yolo_dataset(fold: int,
                         out_root: Path = DET_DATA_DIR,
-                        include_val_negatives: bool = True) -> Path:
+                        include_val_negatives: bool = True,
+                        bbox_only: bool = True) -> Path:
     """
     Ultralytics YOLOv8'in beklediği yapıyı kurar:
         out_root/foldN/
@@ -81,6 +82,9 @@ def export_yolo_dataset(fold: int,
             dataset.yaml
 
     DICOM→PNG dönüşümü ProcessPoolExecutor ile paralel işlenir.
+
+    bbox_only=True (varsayılan): yalnızca Type == "Bounding Box" annotasyonu
+    olan kesitler işlenir; Boundary Slice'a ait kesitler YOLO'ya girmez.
     """
     out_root = Path(out_root)
     fold_dir = out_root / f"fold{fold}"
@@ -94,6 +98,18 @@ def export_yolo_dataset(fold: int,
         cache.unlink(missing_ok=True)
 
     manifest = pd.read_csv(SPLIT_DIR / "manifest.csv")
+
+    # ── Bounding Box filtresi ─────────────────────────────────────────────
+    # YOLO'ya yalnızca Type == "Bounding Box" annotasyonu olan kesitler girer.
+    # preprocessing.build_manifest() zaten bu garantiyi sağlar; buradaki filtre
+    # ek savunma katmanıdır (Boundary Slice satırları bboxes sütununu boş bırakır).
+    if bbox_only:
+        n_before = len(manifest)
+        manifest = manifest[manifest["bboxes"].fillna("").str.strip() != ""].copy()
+        n_skipped = n_before - len(manifest)
+        if n_skipped:
+            print(f"BBox filtresi: {n_skipped:,} bbox'sız satır dışlandı "
+                  f"→ {len(manifest):,} kesit işlenecek")
     train_cases = set(pd.read_csv(SPLIT_DIR / f"fold{fold}_train.csv")["Case Number"])
     val_cases = set(pd.read_csv(SPLIT_DIR / f"fold{fold}_val.csv")["Case Number"])
 
@@ -151,6 +167,16 @@ def _write_slice_png(row: pd.Series, out_dir: Path) -> Tuple[Path, int, int]:
 
 
 def _write_yolo_label(bboxes_raw: str, h: int, w: int, out: Path) -> None:
+    """
+    Manifest'in `bboxes` sütununu YOLO formatına çevirir.
+
+    GÜVENLİK GARANTİSİ:
+        `bboxes` sütunu yalnızca `preprocessing.build_manifest()` tarafından,
+        sadece Type == "Bounding Box" satırlarından doldurulur. Boundary Slice
+        satırları Data alanı NaN olduğu için zaten parse edilemez ve bu fonksiyon
+        tarafından `nan/boş/eksik` kontrolüyle reddedilir. Yani Boundary Slice
+        kaynaklı koordinat ÜRETİLMEZ ve YOLO label'ına ASLA YAZILMAZ.
+    """
     seen: set = set()
     lines: List[str] = []
     if bboxes_raw:
@@ -159,7 +185,8 @@ def _write_yolo_label(bboxes_raw: str, h: int, w: int, out: Path) -> None:
             if not token or token.lower() == "nan":
                 continue
             parts = token.split(",")
-            # Herhangi bir alan nan/boş/eksik ise atla
+            # Herhangi bir alan nan/boş/eksik ise atla (Boundary Slice'tan
+            # gelseydi Data=NaN olur ve burada elenir)
             if len(parts) != 5:
                 continue
             if any(v.strip().lower() in ("nan", "", "none") for v in parts):

@@ -23,8 +23,8 @@ BASE = Path(os.environ.get(
 ))
 
     
-TRAIN_DIR = BASE / "Eğitim Verisi"
-TEST_DIR = BASE / "Yarışma Veri Seti"
+TRAIN_DIR = BASE / "Egitim Verisi"
+TEST_DIR = BASE / "Test Verisi"
 OUT = BASE / "Analiz_Sonuclari" / "grafikler" / "sinif_ornekleri_bb.png"
 
 # Gösterilecek 10 patoloji sınıfı (eğitim setindeki tüm BB sınıfları)

@@ -34,8 +34,8 @@ from datetime import datetime
 class Config:
     # Paths
     BASE = Path('.').resolve()
-    TRAIN_DIR = BASE / 'Eğitim Verisi'
-    TEST_DIR = BASE / 'Yarışma Veri Seti'
+    TRAIN_DIR = BASE / 'Egitim Verisi'
+    TEST_DIR = BASE / 'Test Verisi'
     OUTPUTS_DIR = BASE / 'outputs'
     
     # Pretraining weights (Kaggle'dan indir)

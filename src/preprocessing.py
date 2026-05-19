@@ -24,6 +24,19 @@ from .splits import load_merged_annotations
 
 
 # ---------------------------------------------------------------------------
+# ANNOTATION TİPİ FİLTRELERİ
+# ---------------------------------------------------------------------------
+# YOLO (ve genel olarak nesne saptama) için yalnızca "Bounding Box" tipindeki
+# satırlar kullanılır. Bu satırlar piksel koordinatı içerir (Data: "x1,y1-x2,y2").
+#
+# "Boundary Slice" satırları organın z-ekseninde başlangıç/bitiş kesitini
+# işaretler — Data alanı boştur (NaN). YOLO eğitimine ASLA girmez; yalnızca
+# weak-supervision segmentasyon (src/segmentation.py) için kullanılır.
+YOLO_ANNOTATION_TYPE: str = "Bounding Box"
+SEG_ANNOTATION_TYPE: str  = "Boundary Slice"
+
+
+# ---------------------------------------------------------------------------
 # MANİFEST
 # ---------------------------------------------------------------------------
 def build_manifest(out_path: Path = SPLIT_DIR / "manifest.csv") -> Path:
@@ -33,13 +46,26 @@ def build_manifest(out_path: Path = SPLIT_DIR / "manifest.csv") -> Path:
         - dicom_path: diske göre tam yol
         - super_labels: "0;2" gibi semicolon ayrık üst sınıf ID'leri
         - bboxes: "0,10,20,30,40|2,100,120,130,140" (super_id,x1,y1,x2,y2)
+          → SADECE Type == "Bounding Box" satırlarından türetilir (YOLO girdisi)
         - anatomical_boundary: "Abdominal Aorta;Colon"
-    şeklinde derlenmiş bir CSV üretir. Bu dosya tüm alt işlemlerin girdisidir.
+          → SADECE Type == "Boundary Slice" satırlarından türetilir (segmentasyon)
+        - n_bbox_anns: bu kesite ait Bounding Box annotasyonu sayısı
+        - n_boundary_anns: bu kesite ait Boundary Slice annotasyonu sayısı
+
+    Bu dosya tüm alt işlemlerin girdisidir.
     """
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
     ann = load_merged_annotations()
+
+    # Yalnızca tanınan iki annotasyon tipini kabul et — diğerleri (örn. bozuk
+    # satırlar) sessizce atlanmasın diye burada açıkça filtreliyoruz.
+    valid_types = {YOLO_ANNOTATION_TYPE, SEG_ANNOTATION_TYPE}
+    n_before = len(ann)
+    ann = ann[ann["Type"].isin(valid_types)].copy()
+    if len(ann) < n_before:
+        print(f"⚠ Beklenmeyen annotasyon tipi atlandı: {n_before - len(ann)} satır")
 
     # DICOM yolu çözümle
     def _dicom_path(row):
@@ -54,21 +80,32 @@ def build_manifest(out_path: Path = SPLIT_DIR / "manifest.csv") -> Path:
         super_ids = set()
         bbox_strs: List[str] = []
         anat_boundaries: List[str] = []
+        n_bbox = 0
+        n_bnd  = 0
 
         for _, row in grp.iterrows():
             cls = row["Class"]
-            if row["Type"] == "Bounding Box":
+            row_type = row["Type"]
+
+            # ─── YOLO yolu: yalnızca Bounding Box satırları ───────────────
+            if row_type == YOLO_ANNOTATION_TYPE:
+                n_bbox += 1
                 sid = RAW_PATHOLOGY_TO_SUPER.get(cls)
                 if sid is None:
-                    continue
+                    continue                      # eşlemesi olmayan ham etiket
                 bb = parse_bbox(str(row["Data"]))
                 if bb is None:
-                    continue
+                    continue                      # bozuk koordinat
                 super_ids.add(sid)
                 bbox_strs.append(f"{sid},{bb[0]},{bb[1]},{bb[2]},{bb[3]}")
-            elif row["Type"] == "Boundary Slice":
+
+            # ─── Segmentasyon yolu: yalnızca Boundary Slice satırları ─────
+            elif row_type == SEG_ANNOTATION_TYPE:
+                n_bnd += 1
                 if cls in ANATOMICAL_TO_ID:
                     anat_boundaries.append(cls)
+                # Boundary Slice'ın Data alanı NaN olmalı; bbox akışına
+                # girmemesi için bu blok dışında hiçbir koordinat işlenmez.
 
         records.append({
             "case": int(case),
@@ -78,11 +115,20 @@ def build_manifest(out_path: Path = SPLIT_DIR / "manifest.csv") -> Path:
             "super_labels": ";".join(str(s) for s in sorted(super_ids)),
             "bboxes": "|".join(bbox_strs),
             "anatomical_boundary": ";".join(anat_boundaries),
+            "n_bbox_anns": n_bbox,
+            "n_boundary_anns": n_bnd,
         })
 
     df = pd.DataFrame(records)
     df.to_csv(out_path, index=False)
+    # Açık sağlama özeti
+    n_with_bbox = (df["n_bbox_anns"] > 0).sum()
+    n_with_bnd  = (df["n_boundary_anns"] > 0).sum()
     print(f"Manifest yazıldı: {out_path}  (satır: {len(df)})")
+    print(f"  BBox annotasyonu olan kesit  : {n_with_bbox:,}  (YOLO girdisi)")
+    print(f"  Boundary Slice olan kesit    : {n_with_bnd:,}  (segmentasyon girdisi)")
+    print(f"  Toplam BBox annotasyonu      : {df['n_bbox_anns'].sum():,}")
+    print(f"  Toplam Boundary Slice annot. : {df['n_boundary_anns'].sum():,}")
     return out_path
 
 

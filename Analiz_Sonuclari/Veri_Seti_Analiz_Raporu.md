@@ -23,8 +23,8 @@ Yarışma görevi, 6 akut abdomen patolojisinin tespiti (bounding-box ile) ve 6 
 
 | Varlık | Açıklama |
 |---|---|
-| `Yarışma Veri Seti/` | 359 vaka klasörü; her biri `2xxxx/` şeklinde isimlendirilmiş, içinde `100xxx.dcm` DICOM kesitleri. |
-| `Eğitim Verisi/` | 736 vaka klasörü (isim `.zip` ile bitse de açılmış bir dizindir). |
+| `Test Verisi/` | 359 vaka klasörü; her biri `2xxxx/` şeklinde isimlendirilmiş, içinde `100xxx.dcm` DICOM kesitleri. |
+| `Egitim Verisi/` | 736 vaka klasörü (isim `.zip` ile bitse de açılmış bir dizindir). |
 | `Bilgi.xlsx` | Annotasyon tablosu; iki sayfa: `COMPETITIONDATA` (yarışma/test) ve `TRAIININGDATA` (eğitim). |
 | `s00330-023-10391-y.pdf` | Veri setini tanıtan makalenin PDF tam metni. |
 

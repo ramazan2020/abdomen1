@@ -19,8 +19,8 @@ _env = os.environ.get  # kısa takma ad
 # ---------------------------------------------------------------------------
 ROOT      = Path(_env("ABDOMEN_PROJECT_ROOT", str(Path(__file__).resolve().parents[1])))
 DATA_ROOT = Path(_env("ABDOMEN_DATA_ROOT",    str(ROOT)))
-RAW_TRAIN_DIR = Path(_env("ABDOMEN_TRAIN_DIR",  str(DATA_ROOT / "Eğitim Verisi")))
-RAW_TEST_DIR  = Path(_env("ABDOMEN_TEST_DIR",   str(DATA_ROOT / "Yarışma Veri Seti")))
+RAW_TRAIN_DIR = Path(_env("ABDOMEN_TRAIN_DIR",  str(DATA_ROOT / "Egitim Verisi")))
+RAW_TEST_DIR  = Path(_env("ABDOMEN_TEST_DIR",   str(DATA_ROOT / "Test Verisi")))
 BILGI_XLSX    = Path(_env("ABDOMEN_BILGI_XLSX", str(DATA_ROOT / "Bilgi.xlsx")))
 
 # çıktılar
@@ -105,7 +105,7 @@ TARGET_MATRIX: int = 512
 # ---------------------------------------------------------------------------
 @dataclass
 class SplitConfig:
-    n_splits: int = 5
+    n_splits: int = 2
     seed: int = 42
     holdout_frac: float = 0.15        # yayın raporu için hold-out
     stratify_on_super: bool = True    # her fold'da üst sınıf dengesi hedeflenir
