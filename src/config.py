@@ -105,7 +105,7 @@ TARGET_MATRIX: int = 512
 # ---------------------------------------------------------------------------
 @dataclass
 class SplitConfig:
-    n_splits: int = 2
+    n_splits: int = 5
     seed: int = 42
     holdout_frac: float = 0.15        # yayın raporu için hold-out
     stratify_on_super: bool = True    # her fold'da üst sınıf dengesi hedeflenir
