@@ -20,3 +20,4 @@ __pycache__/
 kaggle/
 .env
 runs/
+nndet_venv/

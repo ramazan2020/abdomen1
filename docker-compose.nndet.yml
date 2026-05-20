@@ -1,0 +1,29 @@
+services:
+  nndet:
+    build:
+      context: ./nnDetection
+      dockerfile: Dockerfile.mac
+      args:
+        env_det_num_threads: "4"
+        env_det_verbose: "1"
+    image: nndetection:mac
+    platform: linux/amd64
+    container_name: nndet_abdomen
+    env_file:
+      - .env
+    environment:
+      - det_data=/opt/data
+      - det_models=/opt/models
+      - OMP_NUM_THREADS=1
+      - det_num_threads=4
+      - det_verbose=1
+    volumes:
+      # Proje verisi
+      - ./outputs/nndet/raw:/opt/data
+      - ./outputs/nndet/models:/opt/models
+      # Notebook'lardan erişim için proje kökü
+      - .:/workspace
+    working_dir: /workspace
+    stdin_open: true
+    tty: true
+    shm_size: "8gb"
