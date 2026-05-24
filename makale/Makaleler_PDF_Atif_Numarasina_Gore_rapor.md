@@ -1,0 +1,136 @@
+# Atıf Numarasına Göre PDF Arşivi Raporu
+
+- Hedef klasör: `D:\makale-pdf\Makaleler_PDF_Atif_Numarasina_Gore`
+- Toplam makale kaydı: 234
+- Yerelden kopyalanan: 97
+- İnternetten indirilen: 11
+- Eksik kalan: 126
+
+## Eksik Kalanlar
+
+- V2 / S_0002: A Comparative Study of Unsupervised and Deep Learning Methods for Automatic Segmentation of Abdominal Aortic Aneurysm on CT Images: Preliminary Results | DOI: 10.1007/978-3-032-03394-9_33 | Not: PDF olmayan yanıt (text/html; charset=utf-8)
+- V3 / S_0003: FMTW-SAM: Foreground mixing and temporally weighted SAM feature fusion for cross-domain semi-supervised segmentation of type-B aortic dissection in computed tomography angiography | DOI: 10.1016/j.neucom.2026.133758 | Not: HTTP 403
+- V4 / S_0004: Beyond Binary Cutoffs: An Explainable Machine Learning Framework for Individualized Diagnostic Reasoning in Suspected Urolithiasis | DOI: 10.3390/diagnostics16091313 | Not: PDF olmayan yanıt (text/html)
+- V9 / S_0009: Kronecker convolutions ensemble vision transformer and 3D kronecker U-net for volumetric segmentation of kidney stones, cysts and tumor from CT scans | DOI: 10.1016/b978-0-443-33082-7.00006-1 | Not: HTTP 403
+- V10 / S_0010: A Vision Transformer-Based Deep Learning Framework for Patient-Level Classification of Acute Pancreatitis and Normal Pancreas Using Computed Tomography | DOI: 10.3390/diagnostics16081152 | Not: PDF olmayan yanıt (text/html)
+- V11 / S_0011: Modern Approaches to Kidney Stone Detection Using Machine Learning | DOI: 10.1007/978-981-96-9716-8_23 | Not: PDF olmayan yanıt (text/html; charset=utf-8)
+- V12 / S_0012: Indeterminate Main Pancreatic Duct Dilation: An Endoscopic Ultrasound-Based Machine Learning Model to Distinguish Main Duct-Intraductal Papillary Mucinous Neoplasm from Chronic Pancreatitis | DOI: 10.1016/j.gie.2026.04.013 | Not: HTTP 403
+- V14 / S_0014: Enhancing kidney stone segmentation in computed tomography images through successive scope reduction and intra-framework feature transfer | DOI: 10.1016/j.bspc.2026.109894 | Not: HTTP 403
+- V15 / S_0015: Parallel Feature Fusion Network for Kidney Stone Detection in CT Images | DOI: 10.1109/iccece69715.2026.11492801 | Not: PDF olmayan yanıt (text/html;charset=utf-8)
+- V17 / S_0017: Adaptive Kernel Modulation Network for Kidney Stone Classification | DOI: 10.1109/iciccs67901.2026.11502812 | Not: PDF olmayan yanıt (text/html;charset=utf-8)
+- V20 / S_0020: An Integrated Framework for Automated Image Segmentation and Personalized Wall Stress Estimation of Abdominal Aortic Aneurysms | DOI: 10.3390/bioengineering13020191 | Not: PDF olmayan yanıt (text/html)
+- V21 / S_0021: Deep Learning Application of YOLOv8 for Aortic Dissection Screening Using Non-contrast Computed Tomography | DOI: 10.1016/j.ejvs.2025.08.054 | Not: HTTP 403
+- V22 / S_0022: Kidney stone detection from a CT scan images using deep learning | DOI: 10.1063/5.0298946 | Not: HTTP 403
+- V23 / S_0023: Kidney Stone Detection in CT Scans: A Hybrid Approach with Machine Learning and Deep Learning | DOI: 10.1007/978-3-031-98360-3_10 | Not: PDF olmayan yanıt (text/html; charset=utf-8)
+- V24 / S_0024: Multi-modal deep learning model for predicting recurrence of moderately severe and severe acute pancreatitis | DOI: 10.1016/j.ejrad.2026.112758 | Not: HTTP 403
+- V25 / S_0025: Real-time, high-precision detection of aortic dissection key components for emergency triage using an enhanced deep learning model | DOI: 10.1002/mp.70461 | Not: HTTP 403
+- V28 / S_0028: A Multimodal Contrastive Learning for Detecting Aortic Dissection on 3D Non-contrast CT with Anatomy Simplification | DOI: 10.1007/978-3-032-04981-0_1 | Not: PDF olmayan yanıt (text/html; charset=utf-8)
+- V29 / S_0029: Adaptive geometric-attention multi-task framework with knowledge distillation for aortic dissection detection in non-contrast CT | DOI: 10.1088/1361-6560/ae3b00 | Not: PDF olmayan yanıt (text/html;charset=utf-8)
+- V32 / S_0032: I2IReg–ClfNet: a cascaded multi-task deep learning framework for ROI-aware kidney stone detection in abdominal CT images | DOI: 10.1016/j.bspc.2026.109857 | Not: HTTP 403
+- V33 / S_0033: Explainable Deep Learning Approach for Binary Kidney Stone Detection in CT Imaging Using MobileNetV2 | DOI: 10.1109/sti69347.2025.11367555 | Not: PDF olmayan yanıt (text/html;charset=utf-8)
+- V34 / S_0034: Towards Lightweight and Reliable Deep Learning Models for Automated Kidney Stone Prediction | DOI: 10.1109/icet66147.2025.11321418 | Not: PDF olmayan yanıt (text/html;charset=utf-8)
+- V35 / S_0035: MyKidney: A Web-based AI tool for automated kidney stone detection from CT imaging | DOI: 10.1016/j.inv.2025.100046 | Not: HTTP 403
+- V36 / S_0036: Automated Detection and Segmentation of Ascending Aorta Dilation on a Non-ECG-Gated Chest CT Using Deep Learning | DOI: 10.3390/diagnostics15182336 | Not: PDF olmayan yanıt (text/html)
+- V37 / S_0037: AI-driven framework for automated detection of kidney stones in CT images: integration of deep learning architectures and transformers | DOI: 10.1088/2057-1976/adf3ba | Not: PDF olmayan yanıt (text/html;charset=utf-8)
+- V38 / S_0038: Synergizing vision transformer with ensemble of deep learning model for accurate kidney stone detection using CT imaging | DOI: 10.1016/j.aej.2025.05.025 | Not: HTTP 403
+- V39 / S_0039: Investigation of ensembles of deep learning models for improved chronic kidney diseases detection in CT scan images | DOI: 10.1016/j.fraope.2025.100298 | Not: HTTP 403
+- V40 / S_0040: DeepSwarmNet: A Lightweight Deep Learning Model for Kidney Cancer Detection using CT Scans | DOI: 10.1109/ciscon66933.2025.11337612 | Not: PDF olmayan yanıt (text/html;charset=utf-8)
+- V41 / S_0041: A Hierarchical Slice Attention Network for Appendicitis Classification in 3D CT Scans | DOI: 10.1109/isbi60581.2025.10981299 | Not: kaynak dosya yok
+- V42 / S_0042: A Hybrid Graph Neural Network and CNN Framework for Accurate Kidney Stone Detection in CT Imaging | DOI: 10.1109/iconat66879.2025.11362570 | Not: PDF olmayan yanıt (text/html;charset=utf-8)
+- V43 / S_0043: Multi-Stage Cascaded Deep Learning-Based Model for Acute Aortic Syndrome Detection: A Multisite Validation Study | DOI: 10.3390/jcm14134797 | Not: PDF olmayan yanıt (text/html)
+- V44 / S_0044: Deep learning enables accurate diagnosis of acute cholecystitis and prediction of suppuration using noncontrast CT | DOI: 10.1016/j.isci.2025.114180 | Not: HTTP 403
+- V46 / S_0046: PFSH-Net: Parallel frequency-spatial hybrid network for segmentation of kidney stones in pre-contrast computed tomography images of dogs | DOI: 10.1016/j.compbiomed.2024.109609 | Not: HTTP 403
+- V47 / S_0047: Deep-Learning-Based Image Preprocessing and Classification for Kidney Disease Detection in CT Scans | DOI: 10.1109/ichora65333.2025.11017240 | Not: PDF olmayan yanıt (text/html;charset=utf-8)
+- V48 / S_0048: Harnessing Artificial Intelligence to Predict Spontaneous Stone Passage: Development and Testing of a Machine Learning-Based Calculator | DOI: 10.1089/end.2024.0755 | Not: HTTP 403
+- V50 / S_0050: Performance Analysis of Pancreas Segmentation from CT Scan Standard Dataset and Synthetic Images Using Deep Learning | DOI: 10.1109/iatmsi64286.2025.10984465 | Not: PDF olmayan yanıt (text/html;charset=utf-8)
+- V51 / S_0051: Vision Transformer and CNNs in Kidney Stone Classification: A Comparative Study | DOI: 10.1016/j.procs.2025.09.088 | Not: HTTP 403
+- V54 / S_0054: Deep Learning Methods for Kidney Stone Detection and Quantification in Meical Images | DOI: 10.1109/iccwamtip68645.2025.11352642 | Not: PDF olmayan yanıt (text/html;charset=utf-8)
+- V56 / S_0056: Optimised hybrid deep learning classification model for kidney stone diagnosis | DOI: 10.1016/j.rineng.2025.105221 | Not: HTTP 403
+- V57 / S_0057: Colour-Enhanced CT Kidney Stone Classification with ConvNeXt-Base: A Balanced-Dataset Deep Learning Approach | DOI: 10.1109/dasa68193.2025.11498767 | Not: PDF olmayan yanıt (text/html;charset=utf-8)
+- V58 / S_0058: MULTI-SCALE FEATURE FUSION IN 3D CNNS FOR AORTIC ANEURYSM DETECTION IN ANGIOGRAPHY SCANS | DOI: nan | Not: 
+- V59 / S_0059: The application value of YOLO neural network for imaging-based diagnosis and differential diagnosis of acute aortic Syndrome; [YOLO 神经网络在急性主动脉综合征影像学诊断及鉴别诊断中的应用价值] | DOI: 10.7652/jdyxb202502018 | Not: SSLError: HTTPSConnectionPool(host='yxxb.xjtu.edu.cn', port=443): Max retries exceeded with url: / (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1108)')))
+- V60 / S_0060: Radiomics-Based Machine Learning Models Improve Acute Pancreatitis Severity Prediction | DOI: 10.3390/ai6040080 | Not: PDF olmayan yanıt (text/html)
+- V61 / S_0061: Assessing Change in Stone Burden on Baseline and Follow-Up CT: Radiologist and Radiomics Evaluations | DOI: 10.3390/jimaging12010013 | Not: PDF olmayan yanıt (text/html)
+- V71 / S_0071: Optimized GhostNet–ViT and Attention U-Net Pipeline for Accurate Prediction for Medical Diagnosis | DOI: 10.1109/icscn67106.2025.11308329 | Not: PDF olmayan yanıt (text/html;charset=utf-8)
+- V72 / S_0072: Hybrid Neural Network Framework for Multiclass Classification of Kidney Stones from CT scans | DOI: 10.1109/incet64471.2025.11140015 | Not: PDF olmayan yanıt (text/html;charset=utf-8)
+- V73 / S_0073: Nephrolithcipher: Decoding Nephrolithiasis Through Deep Neural Networks | DOI: 10.1109/icssas66150.2025.11080857 | Not: PDF olmayan yanıt (text/html;charset=utf-8)
+- V74 / S_0074: Kidney Disease Detection Using Computed Tomography Scans: A Deep Learning Approach with Hybrid Activation Functions Based ResNet50 | DOI: 10.1109/icact67549.2025.11351468 | Not: PDF olmayan yanıt (text/html;charset=utf-8)
+- V78 / S_0078: KidneyNet: Fusion of MobileNetV2 and VGG16 for Enhanced and Interpretable Kidney Stone Detection in CT Scans | DOI: 10.1109/iccit68739.2025.11491309 | Not: PDF olmayan yanıt (text/html;charset=utf-8)
+- V79 / S_0079: Kidney Stone Detection Using Deep Learning Techniques | DOI: 10.1109/ic-cgu67042.2025.11338047 | Not: PDF olmayan yanıt (text/html;charset=utf-8)
+- V80 / S_0080: Sigmoid Colon Localisation for Acute Diverticulitis Disease Using Sigloc 3D Convolution Neural Network | DOI: 10.1007/978-981-96-3863-5_22 | Not: PDF olmayan yanıt (text/html; charset=utf-8)
+- V81 / S_0081: A two-stage deep learning framework for kidney stone detection and clinical severity grading in CT imaging | DOI: 10.1016/j.imu.2025.101704 | Not: HTTP 403
+- V82 / S_0082: Enhanced CT image classification for kidney stones using pruned ConvNeXt and two-tier optimization | DOI: 10.1080/17843286.2025.2586626 | Not: HTTP 403
+- V85 / S_0085: SAM: A Lightweight Static Attention Module for Kidney Stone Detection in CT Images | DOI: 10.1109/icaisg68699.2025.11452121 | Not: PDF olmayan yanıt (text/html;charset=utf-8)
+- V86 / S_0086: Optimizing Kidney Stone Detection with Vision Transformers and CNNs: A Transfer Learning Strategy | DOI: 10.1109/icpct64145.2025.10940924 | Not: PDF olmayan yanıt (text/html;charset=utf-8)
+- V87 / S_0087: Kidney Stone Size Estimation Using VGG16 Architecture | DOI: 10.1109/incet64471.2025.11140098 | Not: PDF olmayan yanıt (text/html;charset=utf-8)
+- V91 / S_0091: Kidney stone detection in CT scans using attention based multi-path feature fusion networks | DOI: 10.1088/2631-8695/adf8b7 | Not: PDF olmayan yanıt (text/html;charset=utf-8)
+- V93 / S_0093: YOLOv12-Based Real-Time Detection of Kidney Stones in CT Images: A Deep Learning Approach | DOI: 10.1109/aibthings66987.2025.11296182 | Not: PDF olmayan yanıt (text/html;charset=utf-8)
+- V98 / S_0098: LABEL-SAM: A Semi-Automatic Interactive Annotation Model for Aortic Dissection Segmentation in 3D CTA Image | DOI: 10.1109/icassp49660.2025.10888624 | Not: PDF olmayan yanıt (text/html;charset=utf-8)
+- V102 / S_0102: RRM-TransUNet: Deep-Learning Driven Interactive Model for Precise Pancreas Segmentation in CT Images | DOI: 10.1002/rcs.70065 | Not: HTTP 403
+- V109 / S_0109: Optimized YOLOv5 Architecture for Superior Kidney Stone Detection in CT Scans | DOI: 10.3390/electronics13224418 | Not: PDF olmayan yanıt (text/html)
+- V112 / S_0112: Radiomics-Based Machine Learning Model for Diagnosis of Acute Pancreatitis Using Computed Tomography | DOI: 10.3390/diagnostics14070718 | Not: PDF olmayan yanıt (text/html)
+- V113 / S_0113: DETR-SAM: Combining Feature-Fused DETR Detector and Fine-Tuned SAM for Automatic Aortic Dissection Segmentation in CTA Image | DOI: 10.1109/bibm62325.2024.10822793 | Not: PDF olmayan yanıt (text/html;charset=utf-8)
+- V114 / S_0114: Kidney Stone Classification using Machine Learning Models on CT Images | DOI: 10.1109/ssitcon62437.2024.10796815 | Not: PDF olmayan yanıt (text/html;charset=utf-8)
+- V117 / S_0117: Improved detection of aortic dissection in non-contrast-enhanced chest CT using an attention-based deep learning model | DOI: 10.1016/j.heliyon.2024.e24547 | Not: HTTP 403
+- V119 / S_0119: Automated Deep Learning Pipeline for Accurate Segmentation of Aortic Lumen and Branches in Abdominal Aortic Aneurysm: A Two-Step Approach | DOI: 10.1109/imsa61967.2024.10652858 | Not: PDF olmayan yanıt (text/html;charset=utf-8)
+- V120 / S_0120: Automatic Segmentation of Type A Aortic Dissection on Computed Tomography Images Using Deep Learning Approach | DOI: 10.3390/diagnostics14131332 | Not: PDF olmayan yanıt (text/html)
+- V121 / S_0121: Deep learning system for abdominal disease detection and localization | DOI: 10.1109/icot64290.2024.10936944 | Not: PDF olmayan yanıt (text/html;charset=utf-8)
+- V122 / S_0122: Transfer Learning-Based Classification of Kidney Stone From Computed Tomography Images | DOI: 10.1109/idap64064.2024.10711075 | Not: PDF olmayan yanıt (text/html;charset=utf-8)
+- V127 / S_0127: Computed tomography-based body composition indicative of diabetes after hypertriglyceridemic acute pancreatitis | DOI: 10.1016/j.diabres.2024.111862 | Not: HTTP 403
+- V128 / S_0128: A Dual-Functional System for the Classification and Diameter Measurement of Aortic Dissections Using CTA Volumes via Deep Learning | DOI: 10.1016/j.eng.2023.11.014 | Not: HTTP 403
+- V129 / S_0129: ZOZI-Seg: A transformer and UNet cascade network with Zoom-Out and Zoom-In scheme for aortic dissection segmentation in enhanced CT images | DOI: 10.1016/j.compbiomed.2024.108494 | Not: HTTP 403
+- V130 / S_0130: Enhancing Kidney Stone Diagnosis: A Fusion Approach of FCM and CNN for Precise Detection | DOI: 10.1109/icdcece60827.2024.10549262 | Not: PDF olmayan yanıt (text/html;charset=utf-8)
+- V131 / S_0131: A Novel Deep Learning-based Artificial Intelligence System for Interpreting Urolithiasis in Computed Tomography | DOI: 10.1016/j.euf.2024.07.003 | Not: HTTP 403
+- V132 / S_0132: Detection of Aortic Dissection and Intramural Hematoma in Non-Contrast Chest Computed Tomography Using a You Only Look Once-Based Deep Learning Model | DOI: 10.3390/jcm13226868 | Not: PDF olmayan yanıt (text/html)
+- V134 / S_0134: Development and Validation of a Deep Learning and Radiomics Combined Model for Differentiating Complicated From Uncomplicated Acute Appendicitis | DOI: 10.1016/j.acra.2023.08.018 | Not: HTTP 403
+- V135 / S_0135: Machine learning improves early prediction of organ failure in hyperlipidemia acute pancreatitis using clinical and abdominal CT features | DOI: 10.1016/j.pan.2024.02.003 | Not: HTTP 403
+- V137 / S_0137: Automated Detection and Differentiation of Stanford Type A and Type B Aortic Dissections in CTA Scans Using Deep Learning | DOI: 10.3390/diagnostics15010012 | Not: PDF olmayan yanıt (text/html)
+- V140 / S_0140: Intelligent Systems for Kidney Stone Prediction: Harnessing Deep Learning Techniques | DOI: 10.1109/icercs63125.2024.10895395 | Not: PDF olmayan yanıt (text/html;charset=utf-8)
+- V141 / S_0141: An Effective Deep Learning Approach for Kidney Stone Detection in CT Scan Images using Convolutional Neural Network | DOI: 10.1109/compas60761.2024.10797179 | Not: PDF olmayan yanıt (text/html;charset=utf-8)
+- V143 / S_0143: Interpretable and intervenable ultrasonography-based machine learning models for pediatric appendicitis | DOI: 10.1016/j.media.2023.103042 | Not: HTTP 403
+- V144 / S_0144: An Artificial Intelligence-Based Automatic Classifier for the Presence of False Lumen Thrombosis After Frozen Elephant Trunk Operation | DOI: 10.3390/diagnostics14242853 | Not: PDF olmayan yanıt (text/html)
+- V145 / S_0145: The application of a deep learning method for kidney stone detection by CT scans: A YOLOv8 approach | DOI: 10.1109/icsec62781.2024.10770708 | Not: PDF olmayan yanıt (text/html;charset=utf-8)
+- V148 / S_0148: Transforming Healthcare with Deep Learning: Chest Condition Diagnosis from CT Scans | DOI: 10.1109/gcat62922.2024.10923982 | Not: PDF olmayan yanıt (text/html;charset=utf-8)
+- V151 / S_0151: Disease Detection in Abdominal CT Images Using the YOLOv5 Algorithm: A Deep Learning Approach | DOI: 10.1109/icest62335.2024.10639613 | Not: PDF olmayan yanıt (text/html;charset=utf-8)
+- V152 / S_0152: Automatic Kidney Stone Detection using XResNet 152 Model for CT Images | DOI: 10.1109/ic-etite58242.2024.10493554 | Not: PDF olmayan yanıt (text/html;charset=utf-8)
+- V153 / S_0153: Improving Clinical Decision-Making: Detection and Classification of Disease like Kidney Stone from CT Kidney Images Using Deep Learning | DOI: 10.1109/conit61985.2024.10627301 | Not: PDF olmayan yanıt (text/html;charset=utf-8)
+- V154 / S_0154: DIAGNOSIS OF KIDNEY CYST, TUMOR AND STONE FROM CT SCAN IMAGESUSING FEATURE FUSION HYPERGRAPH CONVOLUTIONAL NEURAL NETWORK (F2 HCN2) | DOI: 10.1615/intjmultcompeng.2023048245 | Not: PDF olmayan yanıt (text/html; charset=utf-8)
+- V155 / S_0155: Deep-learned generation of renal dual-energy CT from a single-energy scan | DOI: 10.1016/j.crad.2023.09.021 | Not: HTTP 403
+- V159 / S_0159: CT-based AI model for predicting therapeutic outcomes in ureteral stones after single extracorporeal shock wave lithotripsy through a cohort study | DOI: 10.1097/js9.0000000000001820 | Not: PDF olmayan yanıt (text/html; charset=utf-8)
+- V160 / S_0160: Development and validation of a multimodal model in predicting severe acute pancreatitis based on radiomics and deep learning | DOI: 10.1016/j.ijmedinf.2024.105341 | Not: HTTP 403
+- V161 / S_0161: A novel approach for automated diagnosis of kidney stones from CT images using optimized InceptionV4 based on combined dwarf mongoose optimizer | DOI: 10.1016/j.bspc.2024.106356 | Not: HTTP 403
+- V163 / S_0163: Deep learning nomogram for preoperative distinction between Xanthogranulomatous cholecystitis and gallbladder carcinoma: A novel approach for surgical decision | DOI: 10.1016/j.compbiomed.2023.107786 | Not: HTTP 403
+- V165 / S_0165: Development of a radiomics model to discriminate ammonium urate stones from uric acid stones in vivo : A remedy for the diagnostic pitfall of dual-energy computed tomography | DOI: 10.1097/cm9.0000000000002866 | Not: PDF olmayan yanıt (text/html; charset=utf-8)
+- V166 / S_0166: Deep Learning Prediction for Distal Aortic Remodeling After Thoracic Endovascular Aortic Repair in Stanford Type B Aortic Dissection | DOI: 10.1177/15266028231160101 | Not: HTTP 403
+- V169 / S_0169: Early Kidney Stone Detection Among Patients Using a Deep Learning Model on an Image Dataset | DOI: 10.1007/978-981-99-3315-0_60 | Not: PDF olmayan yanıt (text/html; charset=utf-8)
+- V170 / S_0170: Diagnostic Algorithm Based on Machine Learning to Predict Complicated Appendicitis in Children Using CT, Laboratory, and Clinical Features | DOI: 10.3390/diagnostics13050923 | Not: PDF olmayan yanıt (text/html)
+- V175 / S_0175: Lightweight Framework for Automated Kidney Stone Detection using coronal CT images | DOI: nan | Not: 
+- V176 / S_0176: Automatic Kidney Stone Composition Analysis Method Based on Dual-energy CT | DOI: 10.2174/1573405620666230908111745 | Not: HTTP 403
+- V177 / S_0177: Fully automated pipeline for measurement of the thoracic aorta using joint segmentation and localization neural network | DOI: 10.1117/1.jmi.10.5.051810 | Not: PDF olmayan yanıt (text/html)
+- V178 / S_0178: The Development of an Artificial Intelligence Model Based Solely on Computer Tomography Successfully Predicts Which Patients Will Pass Obstructing Ureteral Calculi | DOI: 10.1016/j.urology.2023.01.025 | Not: HTTP 403
+- V180 / S_0180: Deep-Learning Segmentation of Urinary Stones in Noncontrast Computed Tomography | DOI: 10.1089/end.2022.0722 | Not: HTTP 403
+- V181 / S_0181: Prediction of abdominal aortic aneurysm growth by artificial intelligence taking into account clinical, biologic, morphologic, and biomechanical variables | DOI: 10.1177/17085381221077821 | Not: HTTP 403
+- V184 / S_0184: Attention and Pooling based Sigmoid Colon Segmentation in 3D CT images | DOI: 10.1109/dicta60407.2023.00050 | Not: PDF olmayan yanıt (text/html;charset=utf-8)
+- V185 / S_0185: Diagnosis of Acute Aortic Syndromes on Non-Contrast CT Images with Radiomics-Based Machine Learning | DOI: 10.3390/biology12030337 | Not: PDF olmayan yanıt (text/html)
+- V186 / S_0186: Automatic segmentation of abdominal aortic aneurysms from CT angiography using a context-aware cascaded U-Net | DOI: 10.1016/j.compbiomed.2023.106569 | Not: HTTP 403
+- V189 / S_0189: Application of Kronecker convolutions in deep learning technique for automated detection of kidney stones with coronal CT images | DOI: 10.1016/j.ins.2023.119005 | Not: HTTP 403
+- V190 / S_0190: Effective deep learning classification for kidney stone using axial computed tomography (CT) images | DOI: 10.1515/bmt-2022-0142 | Not: PDF olmayan yanıt (text/html; charset=utf-8)
+- V191 / S_0191: A Comparative Analysis of the Different CNN Models Using Fuzzy PROMETHEE for Classification of Kidney Stone | DOI: 10.1007/978-3-031-25252-5_15 | Not: PDF olmayan yanıt (text/html; charset=utf-8)
+- V193 / S_0193: LSSED: A Robust Segmentation Network for Inflamed Appendix from CT Images | DOI: 10.1109/icassp49357.2023.10096171 | Not: PDF olmayan yanıt (text/html;charset=utf-8)
+- V200 / S_0200: Automated Machine Learning Segmentation and Measurement of Urinary Stones on CT Scan | DOI: 10.1016/j.urology.2022.07.029 | Not: HTTP 403
+- V204 / S_0204: Diagnostic performance and image quality of deep learning image reconstruction (DLIR) on unenhanced low-dose abdominal CT for urolithiasis | DOI: 10.1177/02841851211035896 | Not: HTTP 403
+- V205 / S_0205: A deep learning system for automated kidney stone detection and volumetric segmentation on noncontrast CT scans | DOI: 10.1002/mp.15518 | Not: HTTP 403
+- V207 / S_0207: The value of CT based radiomics in predicting progression of early acute pancreatitis; [CT影像组学预测早期急性胰腺炎进展的价值] | DOI: 10.3760/cma.j.cn112149-20210829-00615 | Not: PDF olmayan yanıt (text/html)
+- V210 / S_0210: Reconstruction of 3D Abdominal Aorta Aneurysm from Computed Tomographic Angiography Using 3D U-Net Deep Learning Network | DOI: 10.1109/bmeicon56653.2022.10012097 | Not: PDF olmayan yanıt (text/html;charset=utf-8)
+- V213 / S_0213: Fully automatic segmentation of abdominal aortic thrombus in pre-operative CTA images using deep convolutional neural networks | DOI: 10.3233/thc-thc213630 | Not: HTTP 403
+- V214 / S_0214: Multi-institutional evaluation of a deep learning model for fully automated detection of aortic aneurysms in contrast and non-contrast CT | DOI: 10.1117/12.2607877 | Not: PDF olmayan yanıt (text/html)
+- V215 / S_0215: A Cascaded Multi-Task Generative Framework for Detecting Aortic Dissection on 3-D Non-Contrast-Enhanced Computed Tomography | DOI: 10.1109/jbhi.2022.3190293 | Not: PDF olmayan yanıt (text/html;charset=utf-8)
+- V217 / S_0217: Application of Radiomics Model of CT Images in the Identification of Ureteral Calculus and Phlebolith | DOI: 10.1155/2022/5478908 | Not: HTTP 403
+- V221 / S_0221: AI-Assisted Stanford Classification of Aortic Dissection in CT Imaging Using Volumetric 3D CNN with External Guided Attention | DOI: 10.1109/biocas49922.2021.9644986 | Not: PDF olmayan yanıt (text/html;charset=utf-8)
+- V224 / S_0224: Automated Screening for Abdominal Aortic Aneurysm in CT Scans under Clinical Conditions Using Deep Learning | DOI: 10.3390/diagnostics11112131 | Not: PDF olmayan yanıt (text/html)
+- V228 / S_0228: IRIS: Interactive Real-Time Feedback Image Segmentation with Deep Learning | DOI: 10.1117/12.2551354 | Not: PDF olmayan yanıt (text/html)
+- V230 / S_0230: Deep Learning-Based 3D Segmentation of True Lumen, False Lumen, and False Lumen Thrombosis in Type-B Aortic Dissection | DOI: 10.1109/embc46164.2021.9631067 | Not: PDF olmayan yanıt (text/html;charset=utf-8)
+- V231 / S_0231: Deep learning model for automated kidney stone detection using coronal CT images | DOI: 10.1016/j.compbiomed.2021.104569 | Not: HTTP 403
+- V233 / S_0233: Abdominal Enhanced Computed Tomography Image by Artificial Intelligence Algorithm in the Diagnosis of Abdominal Aortic Aneurysm | DOI: 10.1155/2021/8721464 | Not: HTTP 403
+- V234 / S_0234: Segmentation of the thoracic aorta using an attention-gated U-Net | DOI: 10.1117/12.2581947 | Not: PDF olmayan yanıt (text/html)
+- V199 / S_0199: 3D Segmentation of Abdominal Aortic Aneurysm Walls from CT Angiograms | DOI: nan | Not: kaynak PDF değil
