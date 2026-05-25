@@ -192,7 +192,10 @@ def train_one_fold(fold: int, cfg=DEFAULT_CLS) -> Dict:
 
     # ── GradScaler (sadece CUDA) ─────────────────────────────────────────
     use_scaler = device.type == "cuda"
-    scaler = torch.amp.GradScaler("cuda", enabled=use_scaler)
+    if hasattr(torch.amp, "GradScaler"):
+        scaler = torch.amp.GradScaler("cuda", enabled=use_scaler)
+    else:
+        scaler = torch.cuda.amp.GradScaler(enabled=use_scaler)
 
     # ── Gradient accumulation ────────────────────────────────────────────
     accum = max(1, cfg.accum_steps)
