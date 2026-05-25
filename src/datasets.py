@@ -19,6 +19,9 @@ class SliceMultiLabelDataset(Dataset):
     """
     Önceden `preprocessing.export_slices` ile üretilmiş NPZ dosyalarını okur.
     Her örnek: (image [3,H,W] float32, labels [6] float32, case int, image_id int).
+
+    Etiketler manifest.csv'den lookup ile alınır; NPZ içindeki etiket değeri
+    yalnızca manifest'te kaydı olmayan negatif örnekler için kullanılır.
     """
 
     def __init__(
@@ -27,6 +30,7 @@ class SliceMultiLabelDataset(Dataset):
         data_dir: Path = CLS_DATA_DIR,
         transform=None,
         input_size: int = 384,
+        manifest_csv: Path = SPLIT_DIR / "manifest.csv",
     ):
         self.data_dir = Path(data_dir)
         self.input_size = input_size
@@ -40,6 +44,21 @@ class SliceMultiLabelDataset(Dataset):
         if not self.files:
             raise RuntimeError(f"{self.data_dir} altında eşleşen NPZ bulunamadı.")
 
+        # Manifest'ten (case, image_id) → label vektörü lookup tablosu
+        self._label_lookup: Dict[tuple, np.ndarray] = {}
+        if Path(manifest_csv).exists():
+            mdf = pd.read_csv(manifest_csv)
+            mdf = mdf[mdf["case"].isin(case_set)]
+            for _, row in mdf.iterrows():
+                vec = np.zeros(len(SUPER_CLASSES), dtype=np.float32)
+                sl = str(row.get("super_labels", ""))
+                if sl and sl != "nan":
+                    for s in sl.split(";"):
+                        s = s.strip()
+                        if s:
+                            vec[int(s)] = 1.0
+                self._label_lookup[(int(row["case"]), int(row["image_id"]))] = vec
+
     def __len__(self) -> int:
         return len(self.files)
 
@@ -50,6 +69,11 @@ class SliceMultiLabelDataset(Dataset):
             labels = npz["labels"].astype(np.float32)
             case = int(npz["case"])
             image_id = int(npz["image_id"])
+
+        # NPZ etiketi yerine manifest lookup kullan (varsa)
+        key = (case, image_id)
+        if key in self._label_lookup:
+            labels = self._label_lookup[key]
 
         # HxWx3 → 3xHxW
         img_chw = np.transpose(img, (2, 0, 1))
