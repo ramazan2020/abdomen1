@@ -30,7 +30,8 @@ def read_dicom(path: Path) -> FileDataset:
     """pydicom wrapper — InvalidDICOM hatalarını hızlı yakalamak için."""
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", message=".*excess padding.*", category=UserWarning)
-        return pydicom.dcmread(str(path))
+        warnings.filterwarnings("ignore", message=".*DICOM File Meta.*", category=UserWarning)
+        return pydicom.dcmread(str(path), force=True)
 
 
 def dicom_to_hu(ds: FileDataset) -> np.ndarray:

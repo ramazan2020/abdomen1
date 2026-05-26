@@ -316,16 +316,26 @@ def generate_weak_masks(limit: Optional[int] = None,
             ref       = sitk.ReadImage(str(nii_path))
             shape_zyx = sitk.GetArrayFromImage(ref).shape
 
-            # TotalSegmentator inference (roi_subset + MPS)
+            # TotalSegmentator inference — başarısız olursa BB-only moda geç
             ts_dir = out_dir / "ts" / str(case_id)
-            if not ts_dir.exists() or not any(ts_dir.glob("*.nii.gz")):
-                ts_dir.mkdir(parents=True, exist_ok=True)
-                _run_totalseg(nii_path, ts_dir, fast=totalseg_fast, device=dev)
+            ts_dir.mkdir(parents=True, exist_ok=True)
+            if not any(ts_dir.glob("*.nii.gz")):
+                try:
+                    _run_totalseg(nii_path, ts_dir, fast=totalseg_fast, device=dev)
+                except Exception as ts_exc:
+                    # TotalSegmentator yoksa veya başarısızsa BB-only modda devam et.
+                    # _load_organ_mask() zaten eksik dosyalar için sıfır maske döner;
+                    # BB kesitlerinde mevcut fallback (roi doğrudan) devreye girer.
+                    print(f"  [uyari] TotalSeg hatasi, BB-only mod: {ts_exc}")
 
             # Annotasyonları çözümle
             series        = load_series(case_dirs[case_id])
             case_rows     = manifest[manifest["case"] == case_id]
             bb_by_dis, bz = _parse_annotations(case_rows, series.image_ids)
+
+            if not bb_by_dis:
+                skipped += 1
+                continue
 
             # 3D hastalık maskesi
             mask = _make_disease_mask(bb_by_dis, bz, ts_dir, shape_zyx)
