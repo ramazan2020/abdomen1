@@ -273,6 +273,11 @@ def train_yolo(fold: int, cfg=DEFAULT_DET, project: str = "runs/det") -> Path:
         hsv_h=cfg.hsv_h,            # 0.0 — CT grayscale
         hsv_s=cfg.hsv_s,            # 0.0 — CT grayscale
         hsv_v=cfg.hsv_v,            # 0.4 — hafif parlaklık varyasyonu
+        degrees=cfg.degrees,        # ±10° — CT dilim açı varyasyonu
+        erasing=cfg.erasing,        # 0.1 — küçük lezyonları silmemek için düşük
+        copy_paste=cfg.copy_paste,  # 0.3 — nadir sınıf recall artışı
+        # ── Kayıp ağırlıkları ──────────────────────────────────────────
+        cls=cfg.cls_loss,           # 0.3 — düşük cls baskısı → yüksek recall
         # ── Optimizasyon ───────────────────────────────────────────────
         lr0=cfg.lr0,
         lrf=cfg.lrf,
