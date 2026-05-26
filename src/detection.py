@@ -265,21 +265,30 @@ def train_yolo(fold: int, cfg=DEFAULT_DET, project: str = "runs/det") -> Path:
         imgsz=cfg.img_size,
         epochs=cfg.epochs,
         batch=cfg.batch_size,
-        mosaic=cfg.mosaic,
-        mixup=cfg.mixup,
+        # ── Augmentation (CT'ye uyarlandı) ─────────────────────────────
+        mosaic=cfg.mosaic,          # 0.0 — CT dilimlerini karıştırma
+        mixup=cfg.mixup,            # 0.0 — CT'de anlamsız
+        fliplr=cfg.fliplr,          # 0.0 — anatomi simetrisi yok
+        flipud=cfg.flipud,          # 0.0
+        hsv_h=cfg.hsv_h,            # 0.0 — CT grayscale
+        hsv_s=cfg.hsv_s,            # 0.0 — CT grayscale
+        hsv_v=cfg.hsv_v,            # 0.4 — hafif parlaklık varyasyonu
+        # ── Optimizasyon ───────────────────────────────────────────────
+        lr0=cfg.lr0,
+        lrf=cfg.lrf,
+        weight_decay=cfg.weight_decay,
+        # ── Genel ──────────────────────────────────────────────────────
         project=project,
         name=run_name,
         seed=42,
         deterministic=False,
-        close_mosaic=10,
+        close_mosaic=0,
         patience=cfg.patience,
         device=device,
         workers=n_workers,
         cache=False,
         amp=True,
     )
-    # Ultralytics exist_ok=False ile run ismini otomatik suffix'ler (fold0_yolov8x → fold0_yolov8x2 vb.)
-    # Bu nedenle sabit run_name yerine trainer'ın gerçek save_dir'ini kullanıyoruz.
     return Path(model.trainer.save_dir) / "weights" / "best.pt"
 
 

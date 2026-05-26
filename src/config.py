@@ -130,16 +130,24 @@ class ClsConfig:
 
 @dataclass
 class DetConfig:
-    model: str = "yolov8x.pt"
+    model: str = "yolov8m.pt"   # yolov8x → m (overfitting azaltır)
     img_size: int = 512
     batch_size: int = 16
-    epochs: int = 50
-    mosaic: float = 0.5
-    mixup: float = 0.15
+    epochs: int = 100
+    mosaic: float = 0.0         # CT'de anlamsız, devre dışı
+    mixup: float = 0.0          # CT'de anlamsız, devre dışı
     workers_mps: int = 2
     workers_cuda: int = 8
     workers_cpu: int = 4
-    patience: int = 20
+    patience: int = 30
+    lr0: float = 0.001          # CT ince yapılar için düşük LR
+    lrf: float = 0.01           # final LR = lr0 * lrf
+    weight_decay: float = 0.0005
+    fliplr: float = 0.0         # anatomi simetrisi yok (appendix, safra kesesi)
+    flipud: float = 0.0
+    hsv_h: float = 0.0          # CT grayscale, HSV anlamsız
+    hsv_s: float = 0.0
+    hsv_v: float = 0.4          # parlaklık hafif değişim — HU pencerelemeyle uyumlu
 
 
 @dataclass
