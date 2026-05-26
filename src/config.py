@@ -148,6 +148,10 @@ class DetConfig:
     hsv_h: float = 0.0          # CT grayscale, HSV anlamsız
     hsv_s: float = 0.0
     hsv_v: float = 0.4          # parlaklık hafif değişim — HU pencerelemeyle uyumlu
+    degrees: float = 10.0       # küçük rotasyon — CT dilim açı varyasyonu
+    erasing: float = 0.1        # düşük erase oranı — küçük lezyonları silme
+    copy_paste: float = 0.3     # lezyon kopyalama — nadir sınıf recall artışı
+    cls_loss: float = 0.3       # düşük cls kaybı → daha fazla kutu, yüksek recall
 
 
 @dataclass
