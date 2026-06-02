@@ -64,7 +64,10 @@ def make_splits(out_dir: Path = SPLIT_DIR,
     out_dir.mkdir(parents=True, exist_ok=True)
 
     all_ann = load_merged_annotations()
-    case_mat = _vaka_super_matrix(all_ann)
+    # Fold stratifikasyonu yalnızca eğitim annotasyonlarına dayanmalı;
+    # comp annotasyonları farklı resimler ve fold yapısını etkilememeli.
+    train_ann = all_ann[all_ann["source"] == "train"]
+    case_mat = _vaka_super_matrix(train_ann)
     cases = case_mat["Case Number"].values
 
     # Hold-out

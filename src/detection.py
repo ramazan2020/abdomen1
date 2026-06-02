@@ -99,6 +99,10 @@ def export_yolo_dataset(fold: int,
 
     manifest = pd.read_csv(SPLIT_DIR / "manifest.csv")
 
+    # Aynı case+image_id farklı setlerde (train/comp) farklı resimler olabilir;
+    # fold split'leri sadece eğitim setini kapsadığından comp satırları dışlanır.
+    manifest = manifest[manifest["source"] == "train"].copy()
+
     # ── Bounding Box filtresi ─────────────────────────────────────────────
     # YOLO'ya yalnızca Type == "Bounding Box" annotasyonu olan kesitler girer.
     # preprocessing.build_manifest() zaten bu garantiyi sağlar; buradaki filtre
@@ -151,6 +155,7 @@ def export_yolo_dataset(fold: int,
 
 def _write_slice_png(row: pd.Series, out_dir: Path) -> Tuple[Path, int, int]:
     import cv2
+    from PIL import Image as _PILImage
     dpath = Path(row["dicom_path"])
     ds = read_dicom(dpath)
     hu = dicom_to_hu(ds)
@@ -158,11 +163,11 @@ def _write_slice_png(row: pd.Series, out_dir: Path) -> Tuple[Path, int, int]:
     img = (img * 255.0).astype(np.uint8)
     stem = f"{row['case']}_{row['image_id']}"
     out_path = out_dir / f"{stem}.png"
-    # OpenCV BGR bekler — kanallarımız [abdomen, pancreas, bone], bilgi kanal
-    # sıralamasından bağımsız olduğu için direkt kaydediyoruz.
+    # macOS spawn worker'larında cv2.imwrite bazen False döner;
+    # PIL ile fallback PNG yazımı tutarlı çalışır.
     ok = cv2.imwrite(str(out_path), img)
     if not ok:
-        raise RuntimeError(f"cv2.imwrite başarısız oldu: {out_path}")
+        _PILImage.fromarray(img[:, :, ::-1]).save(str(out_path))
     return out_path, img.shape[0], img.shape[1]
 
 
@@ -220,6 +225,57 @@ def _write_dataset_yaml(fold_dir: Path) -> None:
     for i, c in enumerate(SUPER_CLASSES):
         yaml.append(f"  {i}: {c}")
     (fold_dir / "dataset.yaml").write_text("\n".join(yaml) + "\n")
+
+
+# ---------------------------------------------------------------------------
+# TEST (YARISMA) VERİ HAZIRLIĞI
+# ---------------------------------------------------------------------------
+def export_yolo_test_dataset(out_root: Path = DET_DATA_DIR) -> Path:
+    """
+    Yarışma (Test Verisi) setini YOLO inference + değerlendirme için hazırlar.
+        out_root/test/
+            images/test/*.png
+            labels/test/*.txt   ← ground truth (değerlendirme için)
+
+    manifest'teki source='comp' satırları kullanılır; her satırın dicom_path'i
+    doğrudan Test Verisi klasörüne işaret eder.
+    """
+    out_root = Path(out_root)
+    test_dir = out_root / "test"
+    for sub in ("images/test", "labels/test"):
+        p = test_dir / sub
+        if p.exists():
+            shutil.rmtree(p)
+        p.mkdir(parents=True, exist_ok=True)
+
+    manifest = pd.read_csv(SPLIT_DIR / "manifest.csv")
+    comp = manifest[
+        (manifest["source"] == "comp") &
+        (manifest["bboxes"].fillna("").str.strip() != "")
+    ].copy()
+    print(f"Test seti: {comp['case'].nunique()} vaka, {len(comp):,} bbox'lu kesit")
+
+    tasks = [(row.to_dict(), "test", str(test_dir), True) for _, row in comp.iterrows()]
+
+    cpu_count = multiprocessing.cpu_count() or 2
+    if platform.system() == "Darwin":
+        n_workers = min(6, cpu_count)
+        ctx = multiprocessing.get_context("spawn")
+        Executor = ProcessPoolExecutor
+        executor_kwargs: dict = {"max_workers": n_workers, "mp_context": ctx}
+    else:
+        n_workers = min(16, cpu_count * 4)
+        Executor = ThreadPoolExecutor
+        executor_kwargs = {"max_workers": n_workers}
+
+    with Executor(**executor_kwargs) as executor:
+        futures = {executor.submit(_process_manifest_row, t): t for t in tasks}
+        for fut in tqdm(as_completed(futures), total=len(tasks), desc="YOLO test"):
+            result = fut.result()
+            if result and result.startswith("ERR:"):
+                print(f"[skip] {result[4:]}")
+
+    return test_dir
 
 
 # ---------------------------------------------------------------------------
