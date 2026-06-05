@@ -35,7 +35,7 @@ try:
 except Exception:                      # pragma: no cover
     sitk = None
 
-from .config import (ANATOMICAL_TO_ID, DEFAULT_SEG, RAW_TEST_DIR, RAW_TRAIN_DIR,
+from .config import (ANATOMICAL_TO_ID, DEFAULT_SEG, YARISMA_DIR, EGITIM_DIR,
                      SEG_DATA_DIR, SPLIT_DIR)
 from .dicom_utils import load_series, resample_volume
 
@@ -174,7 +174,7 @@ def generate_pseudo_labels(limit: int | None = None) -> None:
 
     # Tüm vaka dizinlerini topla ve limit uygula
     all_case_dirs: List[Path] = []
-    for source_dir in (RAW_TRAIN_DIR, RAW_TEST_DIR):
+    for source_dir in (EGITIM_DIR, YARISMA_DIR):
         all_case_dirs.extend(sorted(p for p in source_dir.iterdir() if p.is_dir()))
     if limit is not None:
         all_case_dirs = all_case_dirs[:limit]

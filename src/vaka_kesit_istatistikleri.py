@@ -10,7 +10,7 @@ import pandas as pd
 # ---- YOLLAR ----
 BASE = Path(os.environ.get(
     "TR_ABDOMEN_BASE",
-    r"/Users/ramazanpolat/Desktop/datasets/abdomen"
+    r"/Users/ramazanpolat/Desktop/datasets/abdomenDataSet"
 ))
 
     

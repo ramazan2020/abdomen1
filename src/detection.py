@@ -24,7 +24,7 @@ import pandas as pd
 from tqdm import tqdm
 
 from .config import (DEFAULT_DET, DEFAULT_WINDOWS, DET_DATA_DIR,
-                     RAW_PATHOLOGY_TO_SUPER, RAW_TEST_DIR, RAW_TRAIN_DIR,
+                     RAW_PATHOLOGY_TO_SUPER, YARISMA_DIR, EGITIM_DIR,
                      SPLIT_DIR, SUPER_CLASSES)
 from .dicom_utils import (bbox_xyxy_to_yolo, dicom_to_hu, hu_to_three_channel,
                           parse_bbox, read_dicom)
@@ -99,10 +99,6 @@ def export_yolo_dataset(fold: int,
 
     manifest = pd.read_csv(SPLIT_DIR / "manifest.csv")
 
-    # Aynı case+image_id farklı setlerde (train/comp) farklı resimler olabilir;
-    # fold split'leri sadece eğitim setini kapsadığından comp satırları dışlanır.
-    manifest = manifest[manifest["source"] == "train"].copy()
-
     # ── Bounding Box filtresi ─────────────────────────────────────────────
     # YOLO'ya yalnızca Type == "Bounding Box" annotasyonu olan kesitler girer.
     # preprocessing.build_manifest() zaten bu garantiyi sağlar; buradaki filtre
@@ -119,7 +115,7 @@ def export_yolo_dataset(fold: int,
 
     tasks: List[tuple] = []
     for _, row in manifest.iterrows():
-        case = int(row["case"])
+        case = str(row["case"])
         if case in train_cases:
             split = "train"
         elif case in val_cases:
@@ -444,3 +440,108 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+# ---------------------------------------------------------------------------
+# YOLO PİPELINE (üst düzey API)
+# ---------------------------------------------------------------------------
+class YoloPipeline:
+    """
+    YOLOv8/YOLO12 eğitim ve çıkarım pipeline'ı.
+
+    Kullanım:
+        pipeline = YoloPipeline(fold=0)
+        pipeline.export()
+        weights  = pipeline.train()
+        preds_df = pipeline.predict_images(img_dir=Path("outputs/det_data/test/images/test"))
+
+    Yarışma seti PNG'leri için:
+        YoloPipeline.export_test()
+    """
+
+    def __init__(
+        self,
+        fold: int,
+        config: "DetConfig" = DEFAULT_DET,
+        out_root: Path = DET_DATA_DIR,
+    ) -> None:
+        self.fold = fold
+        self.config = config
+        self.out_root = Path(out_root)
+        self.fold_dir = self.out_root / f"fold{fold}"
+        self.weights: Path | None = None
+
+    def export(self, include_val_negatives: bool = True, bbox_only: bool = True) -> Path:
+        """YOLO PNG + label dataset'ini diske yazar; fold_dir döner."""
+        path = export_yolo_dataset(
+            self.fold,
+            out_root=self.out_root,
+            include_val_negatives=include_val_negatives,
+            bbox_only=bbox_only,
+        )
+        return path
+
+    def train(self, project: str = "runs/det") -> Path:
+        """YOLO modelini eğitir; en iyi ağırlık dosyasının yolunu döner."""
+        self.weights = train_yolo(self.fold, cfg=self.config, project=project)
+        return self.weights
+
+    def predict_images(
+        self,
+        img_dir: Path,
+        weights: Path | None = None,
+        conf: float = 0.05,
+    ) -> pd.DataFrame:
+        """
+        img_dir içindeki PNG dosyalarına toplu inference uygular.
+
+        Dosya adı formatı: {prefix}_{raw_id}_{image_id}.png
+            Örnek: C_20001_100007.png → case=20001, image_id=100007
+
+        Dönen DataFrame sütunları:
+            case (int), image_id (int), class (int), score (float),
+            x1, y1, x2, y2 (piksel koordinatları)
+        """
+        from ultralytics import YOLO
+
+        w = weights or self.weights
+        if w is None:
+            raise ValueError("weights belirtilmemiş; önce train() çağırın ya da weights= geçin.")
+        model = YOLO(str(w))
+        img_dir = Path(img_dir)
+        img_paths = sorted(img_dir.glob("*.png"))
+
+        rows = []
+        for ip in tqdm(img_paths, desc=f"YOLO predict fold{self.fold}"):
+            parts = ip.stem.split("_")
+            try:
+                if len(parts) >= 3:           # T_20001_100007 veya C_20001_100007
+                    case_raw = int(parts[1])
+                    img_id = int(parts[2])
+                elif len(parts) == 2:          # 20001_100007
+                    case_raw = int(parts[0])
+                    img_id = int(parts[1])
+                else:
+                    continue
+            except (ValueError, IndexError):
+                continue
+            res = model.predict(str(ip), conf=conf, verbose=False)[0]
+            for box, score, cls in zip(
+                res.boxes.xyxy.cpu().numpy(),
+                res.boxes.conf.cpu().numpy(),
+                res.boxes.cls.cpu().numpy(),
+            ):
+                rows.append({
+                    "case": case_raw,
+                    "image_id": img_id,
+                    "class": int(cls),
+                    "score": float(score),
+                    "x1": float(box[0]), "y1": float(box[1]),
+                    "x2": float(box[2]), "y2": float(box[3]),
+                })
+        return pd.DataFrame(rows)
+
+    @classmethod
+    def export_test(cls, out_root: Path = DET_DATA_DIR) -> Path:
+        """Yarışma (test) verisi PNG dataset'ini hazırlar."""
+        return export_yolo_test_dataset(out_root=out_root)

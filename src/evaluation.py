@@ -1,6 +1,9 @@
 """
 Makaleye uyumlu değerlendirme:
   F1 @ IoU ∈ {0.1, 0.2, 0.3, 0.4, 0.5}; en yüksek 5 F1'in ortalaması.
+
+Ana sınıf: Evaluator — ground-truth DataFrame'i tutarak tüm metrik
+hesaplamalarına tek arayüz sağlar.
 """
 from __future__ import annotations
 
@@ -8,6 +11,8 @@ from typing import Dict, List, Sequence, Tuple
 
 import numpy as np
 import pandas as pd
+
+from .config import SUPER_CLASSES
 
 
 def _iou_xyxy(a: Sequence[float], b: Sequence[float]) -> float:
@@ -95,3 +100,105 @@ def top5_f1_mean(pred: pd.DataFrame, gt: pd.DataFrame,
         "top5": top5,
         "top5_mean_f1": float(np.mean([v for _, v in top5])),
     }
+
+
+# ---------------------------------------------------------------------------
+# EVALUATOR (üst düzey API)
+# ---------------------------------------------------------------------------
+class Evaluator:
+    """
+    Ground-truth DataFrame'i tutarak tüm metrik hesaplamalarına tek arayüz.
+
+    Kullanım:
+        ev = Evaluator(gt_df)
+        print(ev.top5_f1(pred_df))
+        print(ev.patient_level(pred_df))
+        print(ev.compare({"yolo": pred_yolo, "nnunet": pred_nnunet}))
+
+    gt_df / pred_df şeması:
+        case (int|str), image_id (int), class (int),
+        x1, y1, x2, y2 (piksel); pred_df ayrıca score (float) içerir.
+    """
+
+    def __init__(
+        self,
+        gt_df: pd.DataFrame,
+        classes: List[str] | None = None,
+    ) -> None:
+        self.gt = gt_df
+        self.classes = classes if classes is not None else SUPER_CLASSES
+
+    # ------------------------------------------------------------------
+    # Temel metrikler
+    # ------------------------------------------------------------------
+    def top5_f1(self, pred_df: pd.DataFrame) -> float:
+        """Makaleye uyumlu tek skalarlı skor: top-5 IoU eşiğindeki makro-F1 ort."""
+        return top5_f1_mean(pred_df, self.gt)["top5_mean_f1"]
+
+    def f1_at_iou(self, pred_df: pd.DataFrame, iou_th: float = 0.3) -> Dict:
+        """
+        Belirli bir IoU eşiğinde per-sınıf + makro/mikro F1.
+
+        Dönen sözlük: {per_class: {cls: {precision, recall, f1, tp, fp, fn}},
+                       macro_f1, micro_f1}
+        """
+        return f1_at_iou(pred_df, self.gt, iou_th)
+
+    # ------------------------------------------------------------------
+    # Hasta düzeyi analiz
+    # ------------------------------------------------------------------
+    def patient_level(self, pred_df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Per-sınıf hasta düzeyi binary F1 (bir vakada patoloji var/yok).
+
+        Her sınıf için: vaka bazında TP/FP/FN; sınıf başına precision, recall, f1.
+        Dönen DataFrame'e ek olarak 'macro_f1' sütunu (tüm sınıf ortalaması) eklenir.
+        """
+        rows = []
+        for cls_id, cls_name in enumerate(self.classes):
+            gt_cases = set(self.gt[self.gt["class"] == cls_id]["case"].unique())
+            pred_cases = (
+                set(pred_df[pred_df["class"] == cls_id]["case"].unique())
+                if not pred_df.empty else set()
+            )
+            tp = len(gt_cases & pred_cases)
+            fp = len(pred_cases - gt_cases)
+            fn = len(gt_cases - pred_cases)
+            prec = tp / max(tp + fp, 1)
+            rec = tp / max(tp + fn, 1)
+            f1 = 2 * prec * rec / max(prec + rec, 1e-9)
+            rows.append({
+                "class": cls_name,
+                "tp": tp, "fp": fp, "fn": fn,
+                "precision": round(prec, 4),
+                "recall": round(rec, 4),
+                "f1": round(f1, 4),
+            })
+        result = pd.DataFrame(rows)
+        result["macro_f1"] = round(float(result["f1"].mean()), 4)
+        return result
+
+    # ------------------------------------------------------------------
+    # Model karşılaştırma
+    # ------------------------------------------------------------------
+    def compare(self, models: Dict[str, pd.DataFrame]) -> pd.DataFrame:
+        """
+        Birden fazla modeli top5_f1 metriğiyle karşılaştırır.
+
+        models: {"model_adı": pred_df, ...}
+        Dönen DataFrame: model, top5_f1 sütunları; skora göre azalan sıra.
+        """
+        rows = []
+        for name, pred_df in models.items():
+            result = top5_f1_mean(pred_df, self.gt)
+            rows.append({
+                "model": name,
+                "top5_f1": round(result["top5_mean_f1"], 4),
+                "best_iou_th": result["top5"][0][0] if result["top5"] else None,
+                "best_f1": round(result["top5"][0][1], 4) if result["top5"] else None,
+            })
+        return (
+            pd.DataFrame(rows)
+            .sort_values("top5_f1", ascending=False)
+            .reset_index(drop=True)
+        )
