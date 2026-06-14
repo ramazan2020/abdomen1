@@ -131,6 +131,7 @@ class ClsConfig:
     mixup_alpha: float = 0.2
     accum_steps: int = 1
     precision: str = "bf16-mixed"
+    use_weighted_sampler: bool = True  # nadir sınıfları daha sık örnekle
 
 
 @dataclass
