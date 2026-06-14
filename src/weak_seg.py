@@ -31,7 +31,7 @@ except Exception:                      # pragma: no cover
 
 from .config import (SPLIT_DIR, RAW_TRAIN_DIR, RAW_TEST_DIR,
                      SEG_DATA_DIR, SUPER_CLASSES, DEFAULT_SEG)
-from .dicom_utils import load_series
+from .dicom_utils import load_series, load_series_ids
 from .segmentation import _dicom_to_nifti
 
 # ---------------------------------------------------------------------------
@@ -161,7 +161,7 @@ def _parse_annotations(case_rows: pd.DataFrame,
         # Boundary Slice annotasyonları
         for org in str(row.get("anatomical_boundary", "") or "").split(";"):
             org = org.strip()
-            if org:
+            if org and org.lower() != "nan":
                 boundary_z_lists.setdefault(org, []).append(z)
 
     boundary_zrange = {
@@ -328,10 +328,10 @@ def generate_weak_masks(limit: Optional[int] = None,
                     # BB kesitlerinde mevcut fallback (roi doğrudan) devreye girer.
                     print(f"  [uyari] TotalSeg hatasi, BB-only mod: {ts_exc}")
 
-            # Annotasyonları çözümle
-            series        = load_series(case_dirs[case_id])
+            # Annotasyonları çözümle — piksel yüklemeye gerek yok, sadece z-sıralı id'ler
+            image_ids     = load_series_ids(case_dirs[case_id])
             case_rows     = manifest[manifest["case"] == case_id]
-            bb_by_dis, bz = _parse_annotations(case_rows, series.image_ids)
+            bb_by_dis, bz = _parse_annotations(case_rows, image_ids)
 
             if not bb_by_dis:
                 skipped += 1

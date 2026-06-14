@@ -31,7 +31,14 @@ def read_dicom(path: Path) -> FileDataset:
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", message=".*excess padding.*", category=UserWarning)
         warnings.filterwarnings("ignore", message=".*DICOM File Meta.*", category=UserWarning)
-        return pydicom.dcmread(str(path), force=True)
+        ds = pydicom.dcmread(str(path), force=True)
+    # force=True ile okunan dosyalarda TransferSyntaxUID eksik kalabilir;
+    # ExplicitVRLittleEndian varsayılanı bu veri setindeki sıkıştırılmamış CT için geçerlidir.
+    if not hasattr(ds, "file_meta"):
+        ds.file_meta = pydicom.Dataset()
+    if not hasattr(ds.file_meta, "TransferSyntaxUID"):
+        ds.file_meta.TransferSyntaxUID = pydicom.uid.ExplicitVRLittleEndian
+    return ds
 
 
 def dicom_to_hu(ds: FileDataset) -> np.ndarray:
@@ -84,9 +91,41 @@ def _sort_dicoms(paths: List[Path]) -> Tuple[List[FileDataset], str]:
     return datasets, "InstanceNumber"
 
 
+def load_series_ids(case_dir: Path) -> List[int]:
+    """Piksel yüklemeden sadece z-sıralı image_id listesi döner (hızlı, bellek dostu)."""
+    # macOS resource fork dosyaları (._XXXXX) ve integer stem'e sahip olmayanlar atlanır
+    dcm_paths = sorted(
+        p for p in case_dir.iterdir()
+        if p.suffix.lower() == ".dcm" and not p.name.startswith("._")
+        and p.stem.lstrip("-").isdigit()
+    )
+    if not dcm_paths:
+        raise FileNotFoundError(f"DICOM bulunamadı: {case_dir}")
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore")
+        headers = []
+        for p in dcm_paths:
+            try:
+                ds = pydicom.dcmread(str(p), stop_before_pixels=True, force=True)
+                headers.append((p, ds))
+            except Exception:
+                continue
+    if not headers:
+        raise RuntimeError(f"Hiç geçerli DICOM başlığı bulunamadı: {case_dir}")
+    if all(hasattr(ds, "ImagePositionPatient") for _, ds in headers):
+        headers.sort(key=lambda x: float(x[1].ImagePositionPatient[2]))
+    else:
+        headers.sort(key=lambda x: int(getattr(x[1], "InstanceNumber", 0) or 0))
+    return [int(Path(p).stem) for p, _ in headers]
+
+
 def load_series(case_dir: Path) -> CTSeries:
     """Bir vaka klasöründeki tüm .dcm dosyalarını okuyup 3B volüm üretir."""
-    dcm_paths = sorted(p for p in case_dir.iterdir() if p.suffix.lower() == ".dcm")
+    dcm_paths = sorted(
+        p for p in case_dir.iterdir()
+        if p.suffix.lower() == ".dcm" and not p.name.startswith("._")
+        and p.stem.lstrip("-").isdigit()
+    )
     if not dcm_paths:
         raise FileNotFoundError(f"DICOM bulunamadı: {case_dir}")
     datasets, key = _sort_dicoms(dcm_paths)
