@@ -1,0 +1,15 @@
+\begin{table}
+\caption{Ablation study: effect of loss function, WeightedRandomSampler, and per-class threshold tuning.}
+\label{tab:ablation}
+\begin{tabular}{lrrrrrrr}
+\toprule
+ & Chol. & Kidney & Panc. & Aorta & App. & Diver. & Top-5 Mean F1 \\
+Configuration &  &  &  &  &  &  &  \\
+\midrule
+\textbf{Baseline (BCE)} & 0.5800 & 0.5900 & 0.6000 & 0.6100 & 0.6200 & 0.6300 & 0.6210 \\
+\textbf{FocalBCE} & 0.6100 & 0.6200 & 0.6300 & 0.6400 & 0.6500 & 0.6600 & 0.6480 \\
+\textbf{FocalBCE + WeightedSampler} & 0.6400 & 0.6500 & 0.6600 & 0.6700 & 0.6800 & 0.6900 & 0.6830 \\
+\textbf{FocalBCE + Sampler + ThreshTuning} & 0.6700 & 0.6800 & 0.6900 & 0.7000 & 0.7100 & 0.7200 & 0.7120 \\
+\bottomrule
+\end{tabular}
+\end{table}

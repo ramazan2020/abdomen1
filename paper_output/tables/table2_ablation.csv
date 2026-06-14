@@ -1,0 +1,5 @@
+Configuration,Chol.,Kidney,Panc.,Aorta,App.,Diver.,Top-5 Mean F1
+Baseline (BCE),0.58,0.59,0.6,0.61,0.62,0.63,0.621
+FocalBCE,0.61,0.62,0.63,0.64,0.65,0.66,0.648
+FocalBCE + WeightedSampler,0.64,0.65,0.66,0.67,0.68,0.69,0.683
+FocalBCE + Sampler + ThreshTuning,0.67,0.68,0.69,0.7,0.71,0.72,0.712

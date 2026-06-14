@@ -1,0 +1,5 @@
+,YOLO,SwinTransformer,nnUNet,MedNeXt
+YOLO,1.0,0.0,1.0,1.0
+SwinTransformer,1.0,1.0,1.0,1.0
+nnUNet,0.0,0.0,1.0,1.0
+MedNeXt,0.0,0.0,0.0,1.0
