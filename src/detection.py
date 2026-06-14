@@ -24,7 +24,7 @@ import pandas as pd
 from tqdm import tqdm
 
 from .config import (DEFAULT_DET, DEFAULT_WINDOWS, DET_DATA_DIR,
-                     RAW_PATHOLOGY_TO_SUPER, RAW_TEST_DIR, RAW_TRAIN_DIR,
+                     RAW_PATHOLOGY_TO_SUPER, YARISMA_DIR, EGITIM_DIR,
                      SPLIT_DIR, SUPER_CLASSES)
 from .dicom_utils import (bbox_xyxy_to_yolo, dicom_to_hu, hu_to_three_channel,
                           parse_bbox, read_dicom)
@@ -115,7 +115,7 @@ def export_yolo_dataset(fold: int,
 
     tasks: List[tuple] = []
     for _, row in manifest.iterrows():
-        case = int(row["case"])
+        case = str(row["case"])
         if case in train_cases:
             split = "train"
         elif case in val_cases:
@@ -151,6 +151,7 @@ def export_yolo_dataset(fold: int,
 
 def _write_slice_png(row: pd.Series, out_dir: Path) -> Tuple[Path, int, int]:
     import cv2
+    from PIL import Image as _PILImage
     dpath = Path(row["dicom_path"])
     ds = read_dicom(dpath)
     hu = dicom_to_hu(ds)
@@ -158,11 +159,11 @@ def _write_slice_png(row: pd.Series, out_dir: Path) -> Tuple[Path, int, int]:
     img = (img * 255.0).astype(np.uint8)
     stem = f"{row['case']}_{row['image_id']}"
     out_path = out_dir / f"{stem}.png"
-    # OpenCV BGR bekler — kanallarımız [abdomen, pancreas, bone], bilgi kanal
-    # sıralamasından bağımsız olduğu için direkt kaydediyoruz.
+    # macOS spawn worker'larında cv2.imwrite bazen False döner;
+    # PIL ile fallback PNG yazımı tutarlı çalışır.
     ok = cv2.imwrite(str(out_path), img)
     if not ok:
-        raise RuntimeError(f"cv2.imwrite başarısız oldu: {out_path}")
+        _PILImage.fromarray(img[:, :, ::-1]).save(str(out_path))
     return out_path, img.shape[0], img.shape[1]
 
 
@@ -220,6 +221,57 @@ def _write_dataset_yaml(fold_dir: Path) -> None:
     for i, c in enumerate(SUPER_CLASSES):
         yaml.append(f"  {i}: {c}")
     (fold_dir / "dataset.yaml").write_text("\n".join(yaml) + "\n")
+
+
+# ---------------------------------------------------------------------------
+# TEST (YARISMA) VERİ HAZIRLIĞI
+# ---------------------------------------------------------------------------
+def export_yolo_test_dataset(out_root: Path = DET_DATA_DIR) -> Path:
+    """
+    Yarışma (Test Verisi) setini YOLO inference + değerlendirme için hazırlar.
+        out_root/test/
+            images/test/*.png
+            labels/test/*.txt   ← ground truth (değerlendirme için)
+
+    manifest'teki source='comp' satırları kullanılır; her satırın dicom_path'i
+    doğrudan Test Verisi klasörüne işaret eder.
+    """
+    out_root = Path(out_root)
+    test_dir = out_root / "test"
+    for sub in ("images/test", "labels/test"):
+        p = test_dir / sub
+        if p.exists():
+            shutil.rmtree(p)
+        p.mkdir(parents=True, exist_ok=True)
+
+    manifest = pd.read_csv(SPLIT_DIR / "manifest.csv")
+    comp = manifest[
+        (manifest["source"] == "comp") &
+        (manifest["bboxes"].fillna("").str.strip() != "")
+    ].copy()
+    print(f"Test seti: {comp['case'].nunique()} vaka, {len(comp):,} bbox'lu kesit")
+
+    tasks = [(row.to_dict(), "test", str(test_dir), True) for _, row in comp.iterrows()]
+
+    cpu_count = multiprocessing.cpu_count() or 2
+    if platform.system() == "Darwin":
+        n_workers = min(6, cpu_count)
+        ctx = multiprocessing.get_context("spawn")
+        Executor = ProcessPoolExecutor
+        executor_kwargs: dict = {"max_workers": n_workers, "mp_context": ctx}
+    else:
+        n_workers = min(16, cpu_count * 4)
+        Executor = ThreadPoolExecutor
+        executor_kwargs = {"max_workers": n_workers}
+
+    with Executor(**executor_kwargs) as executor:
+        futures = {executor.submit(_process_manifest_row, t): t for t in tasks}
+        for fut in tqdm(as_completed(futures), total=len(tasks), desc="YOLO test"):
+            result = fut.result()
+            if result and result.startswith("ERR:"):
+                print(f"[skip] {result[4:]}")
+
+    return test_dir
 
 
 # ---------------------------------------------------------------------------
@@ -388,3 +440,108 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+# ---------------------------------------------------------------------------
+# YOLO PİPELINE (üst düzey API)
+# ---------------------------------------------------------------------------
+class YoloPipeline:
+    """
+    YOLOv8/YOLO12 eğitim ve çıkarım pipeline'ı.
+
+    Kullanım:
+        pipeline = YoloPipeline(fold=0)
+        pipeline.export()
+        weights  = pipeline.train()
+        preds_df = pipeline.predict_images(img_dir=Path("outputs/det_data/test/images/test"))
+
+    Yarışma seti PNG'leri için:
+        YoloPipeline.export_test()
+    """
+
+    def __init__(
+        self,
+        fold: int,
+        config: "DetConfig" = DEFAULT_DET,
+        out_root: Path = DET_DATA_DIR,
+    ) -> None:
+        self.fold = fold
+        self.config = config
+        self.out_root = Path(out_root)
+        self.fold_dir = self.out_root / f"fold{fold}"
+        self.weights: Path | None = None
+
+    def export(self, include_val_negatives: bool = True, bbox_only: bool = True) -> Path:
+        """YOLO PNG + label dataset'ini diske yazar; fold_dir döner."""
+        path = export_yolo_dataset(
+            self.fold,
+            out_root=self.out_root,
+            include_val_negatives=include_val_negatives,
+            bbox_only=bbox_only,
+        )
+        return path
+
+    def train(self, project: str = "runs/det") -> Path:
+        """YOLO modelini eğitir; en iyi ağırlık dosyasının yolunu döner."""
+        self.weights = train_yolo(self.fold, cfg=self.config, project=project)
+        return self.weights
+
+    def predict_images(
+        self,
+        img_dir: Path,
+        weights: Path | None = None,
+        conf: float = 0.05,
+    ) -> pd.DataFrame:
+        """
+        img_dir içindeki PNG dosyalarına toplu inference uygular.
+
+        Dosya adı formatı: {prefix}_{raw_id}_{image_id}.png
+            Örnek: C_20001_100007.png → case=20001, image_id=100007
+
+        Dönen DataFrame sütunları:
+            case (int), image_id (int), class (int), score (float),
+            x1, y1, x2, y2 (piksel koordinatları)
+        """
+        from ultralytics import YOLO
+
+        w = weights or self.weights
+        if w is None:
+            raise ValueError("weights belirtilmemiş; önce train() çağırın ya da weights= geçin.")
+        model = YOLO(str(w))
+        img_dir = Path(img_dir)
+        img_paths = sorted(img_dir.glob("*.png"))
+
+        rows = []
+        for ip in tqdm(img_paths, desc=f"YOLO predict fold{self.fold}"):
+            parts = ip.stem.split("_")
+            try:
+                if len(parts) >= 3:           # T_20001_100007 veya C_20001_100007
+                    case_raw = int(parts[1])
+                    img_id = int(parts[2])
+                elif len(parts) == 2:          # 20001_100007
+                    case_raw = int(parts[0])
+                    img_id = int(parts[1])
+                else:
+                    continue
+            except (ValueError, IndexError):
+                continue
+            res = model.predict(str(ip), conf=conf, verbose=False)[0]
+            for box, score, cls in zip(
+                res.boxes.xyxy.cpu().numpy(),
+                res.boxes.conf.cpu().numpy(),
+                res.boxes.cls.cpu().numpy(),
+            ):
+                rows.append({
+                    "case": case_raw,
+                    "image_id": img_id,
+                    "class": int(cls),
+                    "score": float(score),
+                    "x1": float(box[0]), "y1": float(box[1]),
+                    "x2": float(box[2]), "y2": float(box[3]),
+                })
+        return pd.DataFrame(rows)
+
+    @classmethod
+    def export_test(cls, out_root: Path = DET_DATA_DIR) -> Path:
+        """Yarışma (test) verisi PNG dataset'ini hazırlar."""
+        return export_yolo_test_dataset(out_root=out_root)

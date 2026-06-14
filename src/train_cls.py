@@ -26,7 +26,7 @@ import torch.nn as nn
 from sklearn.metrics import average_precision_score, f1_score
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import CosineAnnealingLR, LinearLR, SequentialLR
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, WeightedRandomSampler
 from tqdm import tqdm
 
 from .device_utils import get_device
@@ -81,7 +81,8 @@ def build_model(cfg=DEFAULT_CLS) -> nn.Module:
 # METRİK
 # ---------------------------------------------------------------------------
 @torch.no_grad()
-def evaluate(model: nn.Module, loader: DataLoader, device: torch.device) -> Dict:
+def evaluate(model: nn.Module, loader: DataLoader, device: torch.device,
+             thresholds: Optional[np.ndarray] = None) -> Dict:
     model.eval()
     all_logits, all_labels = [], []
     for batch in tqdm(loader, desc="  val", leave=False, unit="bat"):
@@ -91,8 +92,12 @@ def evaluate(model: nn.Module, loader: DataLoader, device: torch.device) -> Dict
         all_labels.append(batch["labels"].numpy())
     y_pred = np.concatenate(all_logits)
     y_true = np.concatenate(all_labels)
+
+    if thresholds is None:
+        thresholds = np.full(y_pred.shape[1], 0.5)
+    pred_bin = (y_pred >= thresholds).astype(np.int32)
+
     metrics = {}
-    pred_bin = (y_pred >= 0.5).astype(np.int32)
     for i, cls in enumerate(SUPER_CLASSES):
         if y_true[:, i].sum() == 0:
             metrics[f"AP/{cls}"] = float("nan")
@@ -103,6 +108,42 @@ def evaluate(model: nn.Module, loader: DataLoader, device: torch.device) -> Dict
     metrics["mAP"]     = float(np.nanmean([metrics[f"AP/{c}"] for c in SUPER_CLASSES]))
     metrics["macroF1"] = float(np.nanmean([metrics[f"F1/{c}"] for c in SUPER_CLASSES]))
     return metrics
+
+
+@torch.no_grad()
+def tune_thresholds(model: nn.Module, loader: DataLoader,
+                    device: torch.device,
+                    n_thresholds: int = 51) -> np.ndarray:
+    """Val seti üzerinde sınıf başına F1 maksimize eden sigmoid eşiğini bulur."""
+    model.eval()
+    all_logits, all_labels = [], []
+    for batch in tqdm(loader, desc="  threshold tuning", leave=False, unit="bat"):
+        with _autocast_ctx(device):
+            logits = model(batch["image"].to(device))
+        all_logits.append(logits.float().sigmoid().cpu().numpy())
+        all_labels.append(batch["labels"].numpy())
+    y_pred = np.concatenate(all_logits)
+    y_true = np.concatenate(all_labels)
+
+    n_cls      = y_pred.shape[1]
+    thresholds = np.full(n_cls, 0.5)
+    candidates = np.linspace(0.05, 0.95, n_thresholds)
+
+    print("  Threshold tuning (val):")
+    for c in range(n_cls):
+        if y_true[:, c].sum() == 0:
+            print(f"    {SUPER_CLASSES[c]:<33} th=0.50  F1=n/a  (no positives)")
+            continue
+        best_f1, best_th = 0.0, 0.5
+        for th in candidates:
+            pred_bin = (y_pred[:, c] >= th).astype(np.int32)
+            f1 = f1_score(y_true[:, c], pred_bin, zero_division=0)
+            if f1 > best_f1:
+                best_f1, best_th = f1, th
+        thresholds[c] = best_th
+        print(f"    {SUPER_CLASSES[c]:<33} th={best_th:.2f}  F1={best_f1:.4f}")
+
+    return thresholds
 
 
 def _print_metrics_table(metrics: Dict, fold: int, epoch: int) -> None:
@@ -152,25 +193,43 @@ def train_one_fold(fold: int, cfg=DEFAULT_CLS) -> Dict:
     train_ds = SliceMultiLabelDataset(train_cases, input_size=cfg.input_size)
     val_ds   = SliceMultiLabelDataset(val_cases,   input_size=cfg.input_size)
 
-    train_loader = DataLoader(
-        train_ds, batch_size=cfg.batch_size, shuffle=True,
-        num_workers=n_work, pin_memory=pin, drop_last=True,
-        multiprocessing_context=mp_ctx,
-        persistent_workers=persistent, prefetch_factor=prefetch,
-    )
+    # ── Class-balanced loss + sampler ────────────────────────────────────
+    mani       = load_manifest(train_cases)
+    pos_counts = _count_positives_from_manifest(mani)
+    alpha      = compute_class_balanced_alpha(pos_counts, total=len(mani))
+    print(f"[fold {fold}] pos counts: {pos_counts}")
+    print(f"[fold {fold}] alpha     : {[f'{a:.3f}' for a in alpha.tolist()]}")
+
+    if cfg.use_weighted_sampler:
+        slice_weights = _compute_slice_weights(train_ds, mani, pos_counts)
+        sampler = WeightedRandomSampler(
+            weights=slice_weights,
+            num_samples=len(train_ds),
+            replacement=True,
+        )
+        print(f"[fold {fold}] WeightedRandomSampler aktif  "
+              f"(min={slice_weights.min():.2f} max={slice_weights.max():.2f} "
+              f"mean={slice_weights.mean():.2f})")
+        train_loader = DataLoader(
+            train_ds, batch_size=cfg.batch_size, sampler=sampler,
+            num_workers=n_work, pin_memory=pin, drop_last=True,
+            multiprocessing_context=mp_ctx,
+            persistent_workers=persistent, prefetch_factor=prefetch,
+        )
+    else:
+        train_loader = DataLoader(
+            train_ds, batch_size=cfg.batch_size, shuffle=True,
+            num_workers=n_work, pin_memory=pin, drop_last=True,
+            multiprocessing_context=mp_ctx,
+            persistent_workers=persistent, prefetch_factor=prefetch,
+        )
+
     val_loader = DataLoader(
         val_ds, batch_size=cfg.batch_size, shuffle=False,
         num_workers=n_work, pin_memory=pin,
         multiprocessing_context=mp_ctx,
         persistent_workers=persistent, prefetch_factor=prefetch,
     )
-
-    # ── Class-balanced loss ──────────────────────────────────────────────
-    mani       = load_manifest(train_cases)
-    pos_counts = _count_positives_from_manifest(mani)
-    alpha      = compute_class_balanced_alpha(pos_counts, total=len(mani))
-    print(f"[fold {fold}] pos counts: {pos_counts}")
-    print(f"[fold {fold}] alpha     : {[f'{a:.3f}' for a in alpha.tolist()]}")
 
     # ── Model ────────────────────────────────────────────────────────────
     model = build_model(cfg).to(device)
@@ -343,10 +402,33 @@ def train_one_fold(fold: int, cfg=DEFAULT_CLS) -> Dict:
     print(f"  En iyi  → epoch={best['epoch']:02d}  mAP={best['mAP']:.4f}  macroF1={best['macroF1']:.4f}")
     print(f"{'='*60}\n")
 
+    # ── Threshold tuning (best checkpoint üzerinde) ───────────────────
+    _best_ckpt = ckpt_dir / "best.pth"
+    if _best_ckpt.exists():
+        _state = torch.load(str(_best_ckpt), map_location=device)
+        model.load_state_dict(_state["model"])
+        print("Threshold tuning için best checkpoint yüklendi.")
+    opt_thresholds = tune_thresholds(model, val_loader, device)
+    best["thresholds"] = opt_thresholds.tolist()
+
+    # Threshold'ları checkpoint'e ekle ve yeniden kaydet
+    if _best_ckpt.exists():
+        _state["thresholds"] = opt_thresholds.tolist()
+        torch.save(_state, str(_best_ckpt))
+
+    # Tuned threshold ile son val metriklerini logla
+    metrics_tuned = evaluate(model, val_loader, device, thresholds=opt_thresholds)
+    print(f"\n  mAP (tuned th)     : {metrics_tuned['mAP']:.4f}")
+    print(f"  macroF1 (tuned th) : {metrics_tuned['macroF1']:.4f}")
+    best["mAP_tuned"]     = metrics_tuned["mAP"]
+    best["macroF1_tuned"] = metrics_tuned["macroF1"]
+
     pd.DataFrame(log_rows).to_csv(LOG_DIR / f"cls_fold{fold}.csv", index=False)
-    json.dump(best, open(ckpt_dir / "best_meta.json", "w"), indent=2)
+    json.dump(best, open(ckpt_dir / "best_meta.json", "w"), indent=2, default=float)
 
     if tb_writer is not None:
+        tb_writer.add_scalar("metrics/mAP_tuned",     metrics_tuned["mAP"],     cfg.epochs)
+        tb_writer.add_scalar("metrics/macroF1_tuned", metrics_tuned["macroF1"], cfg.epochs)
         tb_writer.close()
 
     return best
@@ -372,6 +454,39 @@ def _count_positives_from_manifest(mani: pd.DataFrame) -> list[int]:
             if sid != "":
                 counts[int(sid)] += 1
     return counts
+
+
+def _compute_slice_weights(train_ds: SliceMultiLabelDataset,
+                           mani: pd.DataFrame,
+                           pos_counts: List[int]) -> torch.Tensor:
+    """
+    WeightedRandomSampler için kesit başı örnekleme ağırlığı.
+    Nadir sınıf içeren kesitler daha sık çekilir.
+    Negatif (tüm sınıflar yok) kesitler min_weight=1.0 alır.
+    """
+    total = len(mani)
+    inv_freq = np.array(
+        [total / max(c, 1) for c in pos_counts], dtype=np.float64
+    )
+    inv_freq = inv_freq / inv_freq.mean()   # ortalama ≈ 1
+
+    # (case, image_id) → [cls_ids] lookup
+    lookup: Dict[tuple, List[int]] = {}
+    for _, row in mani.iterrows():
+        sl = str(row.get("super_labels", "")).strip()
+        cls_ids = [int(s) for s in sl.split(";") if s.strip()]
+        lookup[(row["case"], int(row["image_id"]))] = cls_ids
+
+    weights = np.ones(len(train_ds.files), dtype=np.float64)
+    for i, fp in enumerate(train_ds.files):
+        parts = fp.stem.rsplit("_", 1)
+        if len(parts) == 2:
+            case, img_id = parts[0], int(parts[1])
+            cls_ids = lookup.get((case, img_id), [])
+            if cls_ids:
+                weights[i] = max(inv_freq[c] for c in cls_ids)
+
+    return torch.tensor(weights, dtype=torch.double)
 
 
 # ---------------------------------------------------------------------------

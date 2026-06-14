@@ -18,7 +18,7 @@ from .config import CLS_DATA_DIR, SPLIT_DIR, SUPER_CLASSES
 class SliceMultiLabelDataset(Dataset):
     """
     Önceden `preprocessing.export_slices` ile üretilmiş NPZ dosyalarını okur.
-    Her örnek: (image [3,H,W] float32, labels [6] float32, case int, image_id int).
+    Her örnek: (image [3,H,W] float32, labels [6] float32, case str, image_id int).
 
     Etiketler manifest.csv'den lookup ile alınır; NPZ içindeki etiket değeri
     yalnızca manifest'te kaydı olmayan negatif örnekler için kullanılır.
@@ -26,7 +26,7 @@ class SliceMultiLabelDataset(Dataset):
 
     def __init__(
         self,
-        case_ids: Sequence[int],
+        case_ids: Sequence[str],
         data_dir: Path = CLS_DATA_DIR,
         transform=None,
         input_size: int = 384,
@@ -36,10 +36,11 @@ class SliceMultiLabelDataset(Dataset):
         self.input_size = input_size
         self.transform = transform
 
-        case_set = set(int(c) for c in case_ids)
+        # case_ids artık "T_20001" / "C_20001" formatında string
+        case_set = set(str(c) for c in case_ids)
         self.files: List[Path] = sorted(
             p for p in self.data_dir.glob("*.npz")
-            if int(p.stem.split("_")[0]) in case_set
+            if p.stem.rsplit("_", 1)[0] in case_set
         )
         if not self.files:
             raise RuntimeError(f"{self.data_dir} altında eşleşen NPZ bulunamadı.")
@@ -48,6 +49,7 @@ class SliceMultiLabelDataset(Dataset):
         self._label_lookup: Dict[tuple, np.ndarray] = {}
         if Path(manifest_csv).exists():
             mdf = pd.read_csv(manifest_csv)
+            mdf["case"] = mdf["case"].astype(str)
             mdf = mdf[mdf["case"].isin(case_set)]
             for _, row in mdf.iterrows():
                 vec = np.zeros(len(SUPER_CLASSES), dtype=np.float32)
@@ -57,7 +59,7 @@ class SliceMultiLabelDataset(Dataset):
                         s = s.strip()
                         if s:
                             vec[int(s)] = 1.0
-                self._label_lookup[(int(row["case"]), int(row["image_id"]))] = vec
+                self._label_lookup[(str(row["case"]), int(row["image_id"]))] = vec
 
     def __len__(self) -> int:
         return len(self.files)
@@ -67,7 +69,7 @@ class SliceMultiLabelDataset(Dataset):
         with np.load(path, allow_pickle=False) as npz:
             img = npz["image"].astype(np.float32)      # H,W,3
             labels = npz["labels"].astype(np.float32)
-            case = int(npz["case"])
+            case = str(npz["case"])        # "T_20001" / "C_20001"
             image_id = int(npz["image_id"])
 
         # NPZ etiketi yerine manifest lookup kullan (varsa)
@@ -111,7 +113,7 @@ def _resize_chw(img: np.ndarray, size: Tuple[int, int]) -> np.ndarray:
 # ---------------------------------------------------------------------------
 # YARDIMCI: MANİFEST FİLTRELEME
 # ---------------------------------------------------------------------------
-def load_manifest(cases: Sequence[int] | None = None) -> pd.DataFrame:
+def load_manifest(cases: Sequence[str] | None = None) -> pd.DataFrame:
     df = pd.read_csv(SPLIT_DIR / "manifest.csv")
     if cases is not None:
         df = df[df["case"].isin(cases)].reset_index(drop=True)

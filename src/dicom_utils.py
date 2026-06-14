@@ -3,13 +3,15 @@ DICOM yükleme, HU dönüşümü, pencereleme ve yeniden örnekleme yardımcıla
 
 Tüm görüntü yükleme işlemleri buradan geçmelidir; böylece ön işleme tek noktadan
 değiştirilebilir ve tekrar üretilebilirlik korunur.
+
+Ana sınıf: DicomVolume — bir vakayı temsil eder, z-sıralama ve NIfTI dönüşümü sağlar.
 """
 from __future__ import annotations
 
 import warnings
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, List, Sequence, Tuple
+from typing import Dict, Iterable, List, Sequence, Tuple
 
 import numpy as np
 import pydicom
@@ -187,6 +189,82 @@ def resample_volume(volume_zyx: np.ndarray,
     out_np = sitk.GetArrayFromImage(out)   # (z, y, x)
     dst_sp_zyx = (dst_sp_xyz[2], dst_sp_xyz[1], dst_sp_xyz[0])
     return out_np, dst_sp_zyx
+
+
+# ---------------------------------------------------------------------------
+# DİCOM VOLÜM (2D + 3D birleşik arayüz)
+# ---------------------------------------------------------------------------
+class DicomVolume:
+    """
+    Bir vakaya ait DICOM klasörünü temsil eder.
+
+    Sorumluluklar:
+    - z_map: image_id → z-index eşlemesi (fiziksel pozisyona göre sıralı)
+    - to_nifti(): SimpleITK ile NIfTI dosyası yazar
+    - slice_hu(): tek bir kesiti HU dizisi olarak döner
+
+    Bu sınıf; notebook'lardaki case_image_id_to_z(), _dicom_to_nifti() ve
+    segmentation._dicom_to_nifti() fonksiyonlarının tek kaynağını oluşturur.
+    """
+
+    def __init__(self, case_dir: Path) -> None:
+        self.case_dir = Path(case_dir)
+        self._z_map: Dict[int, int] | None = None
+
+    @property
+    def z_map(self) -> Dict[int, int]:
+        """image_id → z-index. İlk erişimde hesaplanır, önbelleğe alınır."""
+        if self._z_map is None:
+            self._z_map = self._build_z_map()
+        return self._z_map
+
+    def _build_z_map(self) -> Dict[int, int]:
+        dcm_files = sorted(
+            (p for p in self.case_dir.glob("*.dcm") if not p.stem.startswith(".")),
+            key=lambda p: int(p.stem),
+        )
+        positions: List[Tuple[int, float]] = []
+        for p in dcm_files:
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=UserWarning)
+                ds = pydicom.dcmread(str(p), stop_before_pixels=True, force=True)
+            z = float(getattr(ds, "ImagePositionPatient", [0, 0, int(p.stem)])[2])
+            positions.append((int(p.stem), z))
+        positions.sort(key=lambda x: x[1])
+        return {img_id: idx for idx, (img_id, _) in enumerate(positions)}
+
+    def to_nifti(self, out_path: Path) -> Path:
+        """
+        GDCM serisi okuyarak NIfTI dosyası yazar.
+        Dosya zaten mevcutsa yazma işlemini atlar.
+        """
+        if sitk is None:
+            raise RuntimeError("SimpleITK kurulu değil; `pip install SimpleITK`")
+        out_path = Path(out_path)
+        if out_path.exists():
+            return out_path
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        reader = sitk.ImageSeriesReader()
+        series_ids = reader.GetGDCMSeriesIDs(str(self.case_dir))
+        if series_ids:
+            names = reader.GetGDCMSeriesFileNames(str(self.case_dir), series_ids[0])
+        else:
+            names = sorted(
+                str(p) for p in self.case_dir.glob("*.dcm")
+                if not Path(p).stem.startswith(".")
+            )
+        if not names:
+            raise RuntimeError(f"DICOM dosyası bulunamadı: {self.case_dir}")
+        reader.SetFileNames(names)
+        sitk.WriteImage(reader.Execute(), str(out_path))
+        return out_path
+
+    def slice_hu(self, image_id: int) -> np.ndarray:
+        """Belirtilen image_id'ye ait kesiti HU dizisi olarak döner."""
+        p = self.case_dir / f"{image_id}.dcm"
+        if not p.exists():
+            raise FileNotFoundError(f"Kesit bulunamadı: {p}")
+        return dicom_to_hu(read_dicom(p))
 
 
 # ---------------------------------------------------------------------------

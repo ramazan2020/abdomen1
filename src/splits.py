@@ -39,11 +39,22 @@ def _vaka_super_matrix(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def load_merged_annotations() -> pd.DataFrame:
-    """İki sayfayı `source` etiketi ekleyerek birleştirir."""
+    """
+    İki sayfayı birleştirir; Case Number'a kaynak öneki ekler:
+      T_20001  →  Egitim (TRAININGDATA)
+      C_20001  →  Yarışma (COMPETITIONDATA)
+    Böylece aynı sayısal ID farklı setlerde karışmaz.
+    """
     sheets = pd.read_excel(BILGI_XLSX, sheet_name=None)
     train = sheets["TRAIININGDATA"].assign(source="train")
-    comp = sheets["COMPETITIONDATA"].assign(source="comp")
-    return pd.concat([train, comp], ignore_index=True)
+    comp  = sheets["COMPETITIONDATA"].assign(source="comp")
+    merged = pd.concat([train, comp], ignore_index=True)
+    merged["Case Number"] = merged.apply(
+        lambda r: f"T_{r['Case Number']}" if r["source"] == "train"
+                  else f"C_{r['Case Number']}",
+        axis=1,
+    )
+    return merged
 
 
 # ---------------------------------------------------------------------------
@@ -52,11 +63,14 @@ def load_merged_annotations() -> pd.DataFrame:
 def make_splits(out_dir: Path = SPLIT_DIR,
                 cfg=DEFAULT_SPLIT) -> Dict[str, Path]:
     """
-    1) Tüm annotasyonları birleştirir.
+    1) Tüm annotasyonları birleştirir (eğitim T_ + yarışma C_).
     2) Vakaların %holdout_frac kadarını hold-out olarak ayırır
        (her üst sınıf en az 2 vaka ile temsil edilecek şekilde rastgele).
     3) Kalan vakaları GroupKFold(k=cfg.n_splits) ile böler.
     4) `splits.csv`, `holdout.csv` ve her fold için train/val csv üretir.
+
+    Not: Artık hem eğitim (T_*) hem yarışma (C_*) vakaları fold'lara katılır;
+    böylece modeller tüm etiketli veri üzerinde eğitilebilir.
 
     Returns: üretilen CSV yollarını içeren sözlük.
     """
@@ -64,7 +78,7 @@ def make_splits(out_dir: Path = SPLIT_DIR,
     out_dir.mkdir(parents=True, exist_ok=True)
 
     all_ann = load_merged_annotations()
-    case_mat = _vaka_super_matrix(all_ann)
+    case_mat = _vaka_super_matrix(all_ann)   # T_ + C_ vakaları birlikte
     cases = case_mat["Case Number"].values
 
     # Hold-out
@@ -104,14 +118,19 @@ def make_splits(out_dir: Path = SPLIT_DIR,
     return paths
 
 
-def load_fold(fold: int, split: str) -> List[int]:
-    """fold ∈ [0, n_splits), split ∈ {'train','val'}."""
+def load_fold(fold: int, split: str) -> List[str]:
+    """fold ∈ [0, n_splits), split ∈ {'train','val'}. "T_20001" formatında döner."""
     p = SPLIT_DIR / f"fold{fold}_{split}.csv"
-    return pd.read_csv(p)["Case Number"].astype(int).tolist()
+    return pd.read_csv(p)["Case Number"].astype(str).tolist()
 
 
-def load_holdout() -> List[int]:
-    return pd.read_csv(SPLIT_DIR / "holdout.csv")["Case Number"].astype(int).tolist()
+def load_holdout() -> List[str]:
+    return pd.read_csv(SPLIT_DIR / "holdout.csv")["Case Number"].astype(str).tolist()
+
+
+def raw_case_id(case: str) -> int:
+    """'T_20001' → 20001  |  'C_20001' → 20001"""
+    return int(case.split("_", 1)[1])
 
 
 if __name__ == "__main__":

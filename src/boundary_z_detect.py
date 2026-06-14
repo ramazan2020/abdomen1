@@ -33,8 +33,15 @@ try:
 except ImportError:
     sitk = None
 
-from .config import ANATOMICAL_CLASSES, SEG_DATA_DIR, SPLIT_DIR, RAW_TRAIN_DIR, RAW_TEST_DIR
+from .config import ANATOMICAL_CLASSES, SEG_DATA_DIR, SPLIT_DIR, EGITIM_DIR, YARISMA_DIR
 from .segmentation import _dicom_to_nifti, _m5_env
+
+
+def _case_prefix(case_dir: Path) -> str:
+    """DICOM klasör yolundan 'T_20001' / 'C_20001' formatında case ID üretir."""
+    raw = case_dir.name
+    prefix = "C" if Path(case_dir).parent.resolve() == Path(YARISMA_DIR).resolve() else "T"
+    return f"{prefix}_{raw}"
 
 
 # ---------------------------------------------------------------------------
@@ -322,25 +329,29 @@ class BoundaryCalibrator:
 # Toplu değerlendirme
 # ---------------------------------------------------------------------------
 
-def build_image_id_to_zidx(manifest_csv: Path) -> Dict[int, Dict[int, int]]:
+def build_image_id_to_zidx(manifest_csv: Path) -> Dict[str, Dict[int, int]]:
     """
-    manifest.csv'dan her vaka için:
+    manifest.csv'daki her vaka için DicomVolume.z_map kullanarak
         {case_id: {image_id: z_index}}
     eşlemesini döndürür.
 
-    NIfTI dönüşümünde SimpleITK DICOM seriyi z-pozisyonuna göre sıralar.
-    manifest'te image_id'ler de genellikle z-konumuyla monotonik ilişkilidir
-    (CT acquisition order). Güvenli yaklaşım: image_id'ye göre sıralı rank.
-
-    Not: Eğer DICOM'lar z-pozisyonuna göre farklı bir sırada ise
-    dicom_utils.load_series() çıktısındaki sıra kullanılmalıdır.
+    case_id "T_20001" / "C_20001" formatındadır.
+    z_index fiziksel ImagePositionPatient.z sırasına göredir — NIfTI ile uyumlu.
     """
+    from .dicom_utils import DicomVolume
+    from .splits import raw_case_id
+
     manifest = pd.read_csv(manifest_csv)
-    mapping: Dict[int, Dict[int, int]] = {}
-    for case_id, grp in manifest.groupby("case"):
-        # image_id'ye göre sırala → NIfTI z-eksenindeki sırayla eşleşir
-        sorted_ids = grp["image_id"].sort_values().tolist()
-        mapping[int(case_id)] = {int(img_id): z for z, img_id in enumerate(sorted_ids)}
+    mapping: Dict[str, Dict[int, int]] = {}
+    for case_id, _ in manifest.groupby("case"):
+        case_id = str(case_id)
+        raw = raw_case_id(case_id)
+        base = YARISMA_DIR if case_id.startswith("C_") else EGITIM_DIR
+        try:
+            vol = DicomVolume(base / str(raw))
+            mapping[case_id] = vol.z_map   # {image_id: z_index}
+        except Exception:
+            pass
     return mapping
 
 
@@ -363,8 +374,21 @@ def build_gt_from_bilgi(
         Manifest'te case 20001'in kesit sırası: 100007(0), 100008(1), ..., 100017(k), ...
         → z_start = k, z_end = m
     """
-    xl = pd.read_excel(bilgi_xlsx)
-    bs = xl[xl["Type"].str.strip().str.lower() == "boundary slice"].copy()
+    # Her iki sayfayı oku ve T_/C_ önekini doğru ata
+    sheets = pd.read_excel(bilgi_xlsx, sheet_name=None)
+    frames = []
+    for sheet_key, prefix in [("TRAIININGDATA", "T"), ("COMPETITIONDATA", "C")]:
+        if sheet_key in sheets:
+            df_s = sheets[sheet_key].copy()
+            df_s["_prefix"] = prefix
+            frames.append(df_s)
+    if not frames:
+        return pd.DataFrame()
+    merged = pd.concat(frames, ignore_index=True)
+    bs = merged[merged["Type"].str.strip() == "Boundary Slice"].copy()
+    bs["Case Number"] = bs.apply(
+        lambda r: f"{r['_prefix']}_{int(r['Case Number'])}", axis=1
+    )
 
     # Image Id → z-index eşlemesi
     id_to_z = build_image_id_to_zidx(manifest_csv)
@@ -372,7 +396,6 @@ def build_gt_from_bilgi(
     skipped = 0
     rows = []
     for (case, organ), grp in bs.groupby(["Case Number", "Class"]):
-        case = int(case)
         image_ids = grp["Image Id"].dropna().astype(int).tolist()
         if len(image_ids) < 2:
             # Yalnızca tek boundary varsa atla (annotasyon eksik)
@@ -492,7 +515,7 @@ def run_dataset(
             for organ, interval in preds.items():
                 if interval is not None:
                     rows.append({
-                        "case": int(case_dir.name),
+                        "case": _case_prefix(case_dir),
                         "organ": organ,
                         "z_start": interval[0],
                         "z_end": interval[1],
@@ -562,7 +585,7 @@ def main() -> None:
     elif args.cmd == "dataset":
         cal = BoundaryCalibrator.load(str(args.calibrator)) if args.calibrator else None
         all_dirs: List[Path] = []
-        for src in (RAW_TRAIN_DIR, RAW_TEST_DIR):
+        for src in (EGITIM_DIR, YARISMA_DIR):
             if src.exists():
                 all_dirs.extend(sorted(p for p in src.iterdir() if p.is_dir()))
         if args.split_csv and args.split_csv.exists():

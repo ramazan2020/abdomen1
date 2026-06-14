@@ -29,7 +29,7 @@ try:
 except Exception:                      # pragma: no cover
     sitk = None
 
-from .config import (SPLIT_DIR, RAW_TRAIN_DIR, RAW_TEST_DIR,
+from .config import (SPLIT_DIR, EGITIM_DIR, YARISMA_DIR,
                      SEG_DATA_DIR, SUPER_CLASSES, DEFAULT_SEG)
 from .dicom_utils import load_series, load_series_ids
 from .segmentation import _dicom_to_nifti
@@ -267,7 +267,7 @@ def generate_weak_masks(limit: Optional[int] = None,
     case_dirs: Dict[int, Path] = {}
     for cid in case_ids:
         d = next(
-            (b / str(cid) for b in (RAW_TRAIN_DIR, RAW_TEST_DIR)
+            (b / str(cid) for b in (EGITIM_DIR, YARISMA_DIR)
              if (b / str(cid)).is_dir()),
             None,
         )

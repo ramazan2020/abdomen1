@@ -16,7 +16,7 @@ import pandas as pd
 from tqdm import tqdm
 
 from .config import (ANATOMICAL_TO_ID, CLS_DATA_DIR, DEFAULT_WINDOWS,
-                     RAW_PATHOLOGY_TO_SUPER, RAW_TEST_DIR, RAW_TRAIN_DIR,
+                     RAW_PATHOLOGY_TO_SUPER, YARISMA_DIR, EGITIM_DIR,
                      SPLIT_DIR, SUPER_CLASSES)
 from .dicom_utils import (dicom_to_hu, hu_to_three_channel, parse_bbox,
                           read_dicom)
@@ -67,10 +67,11 @@ def build_manifest(out_path: Path = SPLIT_DIR / "manifest.csv") -> Path:
     if len(ann) < n_before:
         print(f"⚠ Beklenmeyen annotasyon tipi atlandı: {n_before - len(ann)} satır")
 
-    # DICOM yolu çözümle
+    # DICOM yolu çözümle — Case Number "T_20001" / "C_20001" formatında
     def _dicom_path(row):
-        base = RAW_TRAIN_DIR if row["source"] == "train" else RAW_TEST_DIR
-        return str(base / str(row["Case Number"]) / f"{row['Image Id']}.dcm")
+        base = EGITIM_DIR if row["source"] == "train" else YARISMA_DIR
+        raw_id = str(row["Case Number"]).split("_", 1)[1]   # "T_20001" → "20001"
+        return str(base / raw_id / f"{row['Image Id']}.dcm")
 
     ann["dicom_path"] = ann.apply(_dicom_path, axis=1)
 
@@ -108,7 +109,7 @@ def build_manifest(out_path: Path = SPLIT_DIR / "manifest.csv") -> Path:
                 # girmemesi için bu blok dışında hiçbir koordinat işlenmez.
 
         records.append({
-            "case": int(case),
+            "case": str(case),       # "T_20001" / "C_20001"
             "image_id": int(img),
             "source": source,
             "dicom_path": dpath,
@@ -175,7 +176,7 @@ def export_slices(manifest_csv: Path = SPLIT_DIR / "manifest.csv",
             out_path,
             image=img.astype(np.float16),
             labels=labels,
-            case=int(row["case"]),
+            case=str(row["case"]),
             image_id=int(row["image_id"]),
             source=row["source"],
         )
@@ -192,14 +193,18 @@ def _append_random_negatives(manifest_df: pd.DataFrame,
     import random
     rng = random.Random(0)
     ann_keys = set(
-        (int(r["case"]), int(r["image_id"])) for _, r in manifest_df.iterrows()
+        (str(r["case"]), int(r["image_id"])) for _, r in manifest_df.iterrows()
     )
 
-    from .config import RAW_TRAIN_DIR, RAW_TEST_DIR
-    for base, source in [(RAW_TRAIN_DIR, "train"), (RAW_TEST_DIR, "comp")]:
+    from .config import EGITIM_DIR, YARISMA_DIR
+    prefix_map = {EGITIM_DIR: "T", YARISMA_DIR: "C"}
+    source_map = {EGITIM_DIR: "train", YARISMA_DIR: "comp"}
+    for base in [EGITIM_DIR, YARISMA_DIR]:
+        prefix = prefix_map[base]
+        source = source_map[base]
         for case_dir in tqdm(sorted(p for p in base.iterdir() if p.is_dir()),
                              desc=f"neg {source}"):
-            case = int(case_dir.name)
+            case = f"{prefix}_{case_dir.name}"   # "T_20001" / "C_20001"
             dcms = [p for p in case_dir.iterdir() if p.suffix.lower() == ".dcm"]
             neg = [p for p in dcms if (case, int(p.stem)) not in ann_keys]
             rng.shuffle(neg)
