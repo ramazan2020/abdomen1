@@ -1,0 +1,957 @@
+{
+ "11": {
+  "pdf": "007_2026_Dimlo U.M.F_Hybrid Deep Learning for Kidney Stone Detection in CT Scans With Noise Reduction and Feature Enhancement.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "12": {
+  "pdf": "013_2026_Lilhore U.K_Hybrid Quantum-Inspired Transformer Network for Kidney Stone Prediction Using Urine Analysis and CT Scans.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "13": {
+  "pdf": "015_2026_Parallel Feature Fusion Network for Kidney Stone Detection in CT Images.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "14": {
+  "pdf": "017_2026_Adaptive Kernel Modulation Network for Kidney Stone Classification.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "15": {
+  "pdf": null,
+  "how": "NONE",
+  "score": 0
+ },
+ "16": {
+  "pdf": "019_2026_Pérez Martínez L.A_U-Net segmentation of the kidney on noncontrast CT for kidney stones location a deep learning model for Mexican pat.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "17": {
+  "pdf": "014_2026_Enhancing kidney stone segmentation in computed tomography images through successive scope reduction and intra-framework feature transfer.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "18": {
+  "pdf": "079_2025_Kidney_Stone_Detection_Using_Deep_Learning_Techniques.txt",
+  "how": "title",
+  "score": 0.646
+ },
+ "19": {
+  "pdf": "032_2026_I2IReg–ClfNet a cascaded multi-task deep learning framework for ROI-aware kidney stone detection in abdominal CT images.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "20": {
+  "pdf": "061_2025_Assessing Change in Stone Burden on Baseline and Follow-Up CT Radiologist and Radiomics Evaluations.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "21": {
+  "pdf": "034_2025_Towards_Lightweight_and_Reliable_Deep_Learning_Models_for_Automated_Kidney_Stone_Prediction.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "22": {
+  "pdf": "033_2025_Explainable_Deep_Learning_Approach_for_Binary_Kidney_Stone_Detection_in_CT_Imaging_Using_MobileNetV2.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "23": {
+  "pdf": null,
+  "how": "NONE",
+  "score": 0
+ },
+ "24": {
+  "pdf": "053_2025_Huang Y_Radiomics application using non-contrast computed tomography for predicting uric acid kidney stones.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "25": {
+  "pdf": "105_2025_Zeng S_An interpretable machine learning model integrating computed tomography radiomics and clinical features for predict.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "26": {
+  "pdf": "131_2024_A Novel Deep Learning-based Artificial Intelligence System for Interpreting Urolithiasis in Computed Tomography.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "27": {
+  "pdf": "159_2024_CT-based AI model for predicting therapeutic outcomes in ureteral stones after single extracorporeal shock wave lithotripsy through a cohort study.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "28": {
+  "pdf": "035_2025_MyKidney A Web-based AI tool for automated kidney stone detection from CT imaging.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "29": {
+  "pdf": "078_2025_KidneyNet_Fusion_of_MobileNetV2_and_VGG16_for_Enhanced_and_Interpretable_Kidney_Stone_Detection_in_CT_Scans.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "30": {
+  "pdf": "037_2025_AI-driven framework for automated detection of kidney stones in CT images integration of deep learning architectures and transformers.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "31": {
+  "pdf": "038_2025_Synergizing vision transformer with ensemble of deep learning model for accurate kidney stone detection using CT imaging.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "32": {
+  "pdf": "130_2024_Enhancing Kidney Stone Diagnosis A Fusion Approach of FCM and CNN for Precise Detection.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "33": {
+  "pdf": "085_2025_SAM_A_Lightweight_Static_Attention_Module_for_Kidney_Stone_Detection_in_CT_Images.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "34": {
+  "pdf": "189_2023_Application of Kronecker convolutions in deep learning technique for automated detection of kidney stones with coronal CT images.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "35": {
+  "pdf": "152_2024_Automatic Kidney Stone Detection using XResNet 152 Model for CT Images.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "36": {
+  "pdf": "074_2025_Kidney_Disease_Detection_Using_Computed_Tomography_Scans_A_Deep_Learning_Approach_with_Hybrid_Activation_Functions_Based_ResNet50.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "37": {
+  "pdf": "161_2024_A novel approach for automated diagnosis of kidney stones from CT images using optimized InceptionV4 based on combined dwarf mongoose optimizer.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "38": {
+  "pdf": "153_2024_Improving Clinical Decision-Making Detection and Classification of Disease like Kidney Stone from CT Kidney Images Using Deep Learning.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "39": {
+  "pdf": "175_2023_Lightweight Framework for Automated Kidney Stone Detection using coronal CT images.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "40": {
+  "pdf": "231_2021_Deep learning model for automated kidney stone detection using coronal CT images.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "41": {
+  "pdf": "114_2024_Kidney_Stone_Classification_using_Machine_Learning_Models_on_CT_Images.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "42": {
+  "pdf": "051_2025_Vision Transformer and CNNs in Kidney Stone Classification A Comparative Study.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "43": {
+  "pdf": "086_2025_Optimizing_Kidney_Stone_Detection_with_Vision_Transformers_and_CNNs_A_Transfer_Learning_Strategy.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "44": {
+  "pdf": "122_2024_Transfer_Learning-Based_Classification_of_Kidney_Stone_From_Computed_Tomography_Images.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "45": {
+  "pdf": "082_2025_Enhanced CT image classification for kidney stones using pruned ConvNeXt and two-tier optimization.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "46": {
+  "pdf": "057_2025_Colour-Enhanced_CT_Kidney_Stone_Classification_with_ConvNeXt-Base_A_Balanced-Dataset_Deep_Learning_Approach.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "47": {
+  "pdf": "072_2025_Hybrid_Neural_Network_Framework_for_Multiclass_Classification_of_Kidney_Stones_from_CT_scans.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "48": {
+  "pdf": "042_2025_A_Hybrid_Graph_Neural_Network_and_CNN_Framework_for_Accurate_Kidney_Stone_Detection_in_CT_Imaging.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "49": {
+  "pdf": "165_2024_Development of a radiomics model to discriminate ammonium urate stones from uric acid stones in vivo A remedy for the diagnostic pitfall of dual-energy computed tomography.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "50": {
+  "pdf": "200_2022_Automated Machine Learning Segmentation and Measurement of Urinary Stones on CT Scan.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "51": {
+  "pdf": "027_2026_Ye Y_Urological diagnostics based on kidney stone detection in CT imaging using YOLOv8 deep learning framework.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "52": {
+  "pdf": "014_2026_Enhancing kidney stone segmentation in computed tomography images through successive scope reduction and intra-framework feature transfer.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "53": {
+  "pdf": "081_2025_A two-stage deep learning framework for kidney stone detection and clinical severity grading in CT imaging.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "54": {
+  "pdf": "087_2025_Kidney_Stone_Size_Estimation_Using_VGG16_Architecture.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "55": {
+  "pdf": "109_2024_Optimized YOLOv5 Architecture for Superior Kidney Stone Detection in CT Scans.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "56": {
+  "pdf": "145_2024_The application of a deep learning method for kidney stone detection by CT scans A YOLOv8 approach.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "57": {
+  "pdf": "093_2025_YOLOv12-Based_Real-Time_Detection_of_Kidney_Stones_in_CT_Images_A_Deep_Learning_Approach.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "58": {
+  "pdf": "178_2023_The Development of an Artificial Intelligence Model Based Solely on Computer Tomography Successfully Predicts Which Patients Will Pass Obstructing Ureteral Calculi.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "59": {
+  "pdf": "229_2021_Tang L_Value of artificial intelligence model based on unenhanced computed tomography of urinary tract for preoperative pr.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "60": {
+  "pdf": "212_2022_Wang J_Predicting narrow ureters before ureteroscopic lithotripsy with a neural network a retrospective bicenter study.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "61": {
+  "pdf": "217_2022_Application of Radiomics Model of CT Images in the Identification of Ureteral Calculus and Phlebolith.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "62": {
+  "pdf": "035_2025_MyKidney A Web-based AI tool for automated kidney stone detection from CT imaging.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "63": {
+  "pdf": "027_2026_Ye Y_Urological diagnostics based on kidney stone detection in CT imaging using YOLOv8 deep learning framework.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "64": {
+  "pdf": "054_2025_Deep_Learning_Methods_for_Kidney_Stone_Detection_and_Quantification_in_Meical_Images.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "65": {
+  "pdf": "141_2024_An Effective Deep Learning Approach for Kidney Stone Detection in CT Scan Images using Convolutional Neural Network.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "66": {
+  "pdf": "079_2025_Kidney_Stone_Detection_Using_Deep_Learning_Techniques.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "67": {
+  "pdf": "033_2025_Explainable_Deep_Learning_Approach_for_Binary_Kidney_Stone_Detection_in_CT_Imaging_Using_MobileNetV2.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "68": {
+  "pdf": "071_2025_Optimized_GhostNetViT_and_Attention_U-Net_Pipeline_for_Accurate_Prediction_for_Medical_Diagnosis.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "69": {
+  "pdf": "047_2025_Deep-Learning-Based_Image_Preprocessing_and_Classification_for_Kidney_Disease_Detection_in_CT_Scans.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "70": {
+  "pdf": "056_2025_Optimised hybrid deep learning classification model for kidney stone diagnosis.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "71": {
+  "pdf": "073_2025_Nephrolithcipher_Decoding_Nephrolithiasis_Through_Deep_Neural_Networks.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "72": {
+  "pdf": "091_2025_Kidney stone detection in CT scans using attention based multi-path feature fusion networks.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "73": {
+  "pdf": "096_2025_Tang J_YOLO-C3AC An Efficient Deep Learning Method for CT Image Detection of Kidney Stones.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "74": {
+  "pdf": "056_2025_Optimised hybrid deep learning classification model for kidney stone diagnosis.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "75": {
+  "pdf": "014_2026_Enhancing kidney stone segmentation in computed tomography images through successive scope reduction and intra-framework feature transfer.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "76": {
+  "pdf": "140_2024_Intelligent Systems for Kidney Stone Prediction Harnessing Deep Learning Techniques.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "77": {
+  "pdf": "031_2026_Öksüz C_Prospective pilot evaluation of a deep learning model for kidney stone detection on CT using a web-based workflow p.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "78": {
+  "pdf": "014_2026_Enhancing kidney stone segmentation in computed tomography images through successive scope reduction and intra-framework feature transfer.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "79": {
+  "pdf": "070_2025_M. F. Murillobouzon_KSSD2025 A New Annotated Dataset for Automatic Kidney Stone Segmentation and Evaluation With Modified U-Net Based D.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "80": {
+  "pdf": "066_2025_Lin Y_Development and multi-institutional validation of the Swin transformer model for prediction of spontaneous passage.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "81": {
+  "pdf": "090_2025_Shyamala Devi M_Contour-Detected Normalized Residual Model for Kidney Stone Classification.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "82": {
+  "pdf": "100_2025_Wang_Recognizing uric acid type of urinary stones by deep learning.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "83": {
+  "pdf": "138_2024_Liu K_Efficient urinary stone type prediction a novel approach based on self-distillation.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "84": {
+  "pdf": "067_2025_Liu Y_Integrated radiomics and deep learning model for identifying medullary sponge kidney stones.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "85": {
+  "pdf": "150_2024_Rocca A_Radiomics and 256-slice-dual-energy CT in the automated diagnosis of mild acute pancreatitis the innovation of form.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "86": {
+  "pdf": "155_2024_Deep-learned generation of renal dual-energy CT from a single-energy scan.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "87": {
+  "pdf": "089_2025_Shi Z_Noninvasive CT radiomics-clinical model accurately classifies anhydrous uric acid stones a multicenter study.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "88": {
+  "pdf": "157_2024_Song R_CT-based deep learning model for predicting the success of extracorporeal shock wave lithotripsy in treating ureter.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "89": {
+  "pdf": "187_2023_Nakamae Y_AI prediction of extracorporeal shock wave lithotripsy outcomes for ureteral stones by machine learning-based analy.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "90": {
+  "pdf": "203_2022_Chen M_Ureteral calculi lithotripsy for single ureteral calculi can DNN-assisted model help preoperatively predict risk fa.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "91": {
+  "pdf": "173_2023_Chew BH_Development and external validation of a machine learning-based model to classify uric acid stones in patients with.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "92": {
+  "pdf": null,
+  "how": "NONE",
+  "score": 0
+ },
+ "93": {
+  "pdf": "020_2026_An Integrated Framework for Automated Image Segmentation and Personalized Wall Stress Estimation of Abdominal Aortic Aneurysms.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "94": {
+  "pdf": "018_2026_Pouncey AL_Editor's Choice - Fully Automatic Volume Segmentation Using Deep Learning Approaches to Assess the Thoracic Aorta,.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "95": {
+  "pdf": "029_2026_Adaptive geometric-attention multi-task framework with knowledge distillation for aortic dissection detection in non-contrast CT.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "96": {
+  "pdf": "003_2026_FMTW-SAM_ Foreground mixing and temporally weighted SAM feature fusion for cross-domain semi-supervised segmentation of type-B aortic dissection in computed tomography angiography.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "97": {
+  "pdf": "076_2025_Norajitra T_Automated AI detection of thoracic aortic dissection on CT imaging.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "98": {
+  "pdf": "107_2025_Zhuang C_A Fully Automatic Pipeline of Identification, Segmentation, and Subtyping of Aortic Dissection from CT Angiography.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "99": {
+  "pdf": "230_2021_Deep Learning-Based 3D Segmentation of True Lumen, False Lumen, and False Lumen Thrombosis in Type-B Aortic Dissection.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "100": {
+  "pdf": "139_2024_Lu X_Deep learning-based radiomics of computed tomography angiography to predict adverse events after initial endovascul.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "101": {
+  "pdf": "076_2025_Norajitra T_Automated AI detection of thoracic aortic dissection on CT imaging.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "102": {
+  "pdf": "088_2025_Shen Y_Radiomics-Based Machine Learning in the Diagnosis of Type-B Aortic Dissection on Computed Tomography Images.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "103": {
+  "pdf": "025_2026_Real‐time  high‐precision detection of aortic dissection key components for emergency triage.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "104": {
+  "pdf": "021_2026_Deep Learning Application of YOLOv8 for Aortic Dissection Screening Using Non-contrast Computed Tomography.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "105": {
+  "pdf": "043_2025_Multi-Stage Cascaded Deep Learning-Based Model for Acute Aortic Syndrome Detection A Multisite Validation Study.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "106": {
+  "pdf": "052_2025_Hu Y_AI-based diagnosis of acute aortic syndrome from noncontrast CT.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "107": {
+  "pdf": "133_2024_Laletin V_Diagnostic Performance of a Deep Learning-Powered Application for Aortic Dissection Triage Prioritization and Class.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "108": {
+  "pdf": "137_2024_Automated Detection and Differentiation of Stanford Type A and Type B Aortic Dissections in CTA Scans Using Deep Learning.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "109": {
+  "pdf": "098_2025_LABEL-SAM_A_Semi-Automatic_Interactive_Annotation_Model_for_Aortic_Dissection_Segmentation_in_3D_CTA_Image.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "110": {
+  "pdf": "113_2024_DETR-SAM_Combining_Feature-Fused_DETR_Detector_and_Fine-Tuned_SAM_for_Automatic_Aortic_Dissection_Segmentation_in_CTA_Image.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "111": {
+  "pdf": "186_2023_Automatic segmentation of abdominal aortic aneurysms from CT angiography using a context-aware cascaded U-Net.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "112": {
+  "pdf": "129_2024_ZOZI-Seg A transformer and UNet cascade network with Zoom-Out and Zoom-In scheme for aortic dissection segmentation in enhanced CT images.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "113": {
+  "pdf": "120_2024_Automatic Segmentation of Type A Aortic Dissection on Computed Tomography Images Using Deep Learning Approach.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "114": {
+  "pdf": "210_2022_Reconstruction of 3D Abdominal Aorta Aneurysm from Computed Tomographic Angiography Using 3D U-Net Deep Learning Network.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "115": {
+  "pdf": "199_2022_3D Segmentation of Abdominal Aortic Aneurysm Walls from CT Angiograms.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "116": {
+  "pdf": "116_2024_Cheng Z_A deep learning algorithm for the detection of aortic dissection on non-contrast-enhanced computed tomography via t.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "117": {
+  "pdf": "117_2024_Improved detection of aortic dissection in non-contrast-enhanced chest CT using an attention-based deep learning model.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "118": {
+  "pdf": "132_2024_Detection of Aortic Dissection and Intramural Hematoma in Non-Contrast Chest Computed Tomography Using a You Only Look Once-Based Deep Learning Model.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "119": {
+  "pdf": "065_2025_Li Z_An innovative bimodal computed tomography data-driven deep learning model for predicting aortic dissection a multi-.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "120": {
+  "pdf": "221_2021_AI-Assisted Stanford Classification of Aortic Dissection in CT Imaging Using Volumetric 3D CNN with External Guided Attention.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "121": {
+  "pdf": "185_2023_Diagnosis of Acute Aortic Syndromes on Non-Contrast CT Images with Radiomics-Based Machine Learning.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "122": {
+  "pdf": "106_2025_Zhao Y_Development and validation of a diagnostic model for thoracic aortic dissection based on radiomics derived from non.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "123": {
+  "pdf": "215_2022_A Cascaded Multi-Task Generative Framework for Detecting Aortic Dissection on 3-D Non-Contrast-Enhanced Computed Tomography.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "124": {
+  "pdf": "216_2022_Yi Y_Advanced Warning of Aortic Dissection on Non-Contrast CT The Combination of Deep Learning and Morphological Charact.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "125": {
+  "pdf": "036_2025_Automated Detection and Segmentation of Ascending Aorta Dilation on a Non-ECG-Gated Chest CT Using Deep Learning.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "126": {
+  "pdf": "220_2021_Bratt A_Deep Learning Improves the Temporal Reproducibility of Aortic Measurement.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "127": {
+  "pdf": "128_2024_A Dual-Functional System for the Classification and Diameter Measurement of Aortic Dissections Using CTA Volumes via Deep Learning.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "128": {
+  "pdf": "177_2023_Fully automated pipeline for measurement of the thoracic aorta using joint segmentation and localization neural network.txt",
+  "how": "doi-partial",
+  "score": 0.95
+ },
+ "129": {
+  "pdf": "211_2022_Saitta S_A Deep Learning-Based and Fully Automated Pipeline for Thoracic Aorta Geometric Analysis and Planning for Endovascu.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "130": {
+  "pdf": "224_2021_Automated Screening for Abdominal Aortic Aneurysm in CT Scans under Clinical Conditions Using Deep Learning.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "131": {
+  "pdf": "088_2025_Shen Y_Radiomics-Based Machine Learning in the Diagnosis of Type-B Aortic Dissection on Computed Tomography Images.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "132": {
+  "pdf": "144_2024_An Artificial Intelligence-Based Automatic Classifier for the Presence of False Lumen Thrombosis After Frozen Elephant Trunk Operation.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "133": {
+  "pdf": "222_2021_Caradu C_Fully automatic volume segmentation of infrarenal abdominal aortic aneurysm computed tomography images with deep le.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "134": {
+  "pdf": "119_2024_Automated_Deep_Learning_Pipeline_for_Accurate_Segmentation_of_Aortic_Lumen_and_Branches_in_Abdominal_Aortic_Aneurysm_A_Two-Step_Approach.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "135": {
+  "pdf": "182_2023_Li Y_Evaluating nnU-Net for Type B Aortic Dissection segmentation on CTA images.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "136": {
+  "pdf": "179_2023_Kesävuori R_Deep learning-aided extraction of outer aortic surface from CT angiography scans of patients with Stanford type B a.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "137": {
+  "pdf": "119_2024_Automated_Deep_Learning_Pipeline_for_Accurate_Segmentation_of_Aortic_Lumen_and_Branches_in_Abdominal_Aortic_Aneurysm_A_Two-Step_Approach.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "138": {
+  "pdf": "069_2025_Luo YL_Automated quantification of abdominal aortic calcification using 3D nnU-Net a novel approach to assess AAA rupture.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "139": {
+  "pdf": "084_2025_Roby M_Automatic Explainable Segmentation of Abdominal Aortic Aneurysm From Computed Tomography Angiography.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "140": {
+  "pdf": "101_2025_Wang Q_Segmentation-model-based framework to detect aortic dissection on non-contrast CT images a retrospective study.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "141": {
+  "pdf": "008_2026_Fujiwara J_Automatic detection and measurement system for aortic aneurysms using deep learning-based artificial intelligence.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "142": {
+  "pdf": "115_2024_Chatterjee D_Automated detection of incidental abdominal aortic aneurysms on computed tomography.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "143": {
+  "pdf": "124_2024_He L_A model fusion method based DAT-DenseNet for classification and diagnosis of aortic dissection.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "144": {
+  "pdf": "088_2025_Shen Y_Radiomics-Based Machine Learning in the Diagnosis of Type-B Aortic Dissection on Computed Tomography Images.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "145": {
+  "pdf": "076_2025_Norajitra T_Automated AI detection of thoracic aortic dissection on CT imaging.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "146": {
+  "pdf": "006_2026_Cheng J_Predicting the growth of asymptomatic small abdominal aortic aneurysms (AAA) based on deep learning.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "147": {
+  "pdf": "077_2025_Oh SJ_Deep learning algorithm for predicting rapid progression of abdominal aortic aneurysm by integrating CT images and.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "148": {
+  "pdf": "139_2024_Lu X_Deep learning-based radiomics of computed tomography angiography to predict adverse events after initial endovascul.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "149": {
+  "pdf": "158_2024_Wang Y_CTA-Based Radiomics and Area Change Rate Predict Infrarenal Abdominal Aortic Aneurysms Patients Events A Multicente.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "150": {
+  "pdf": "167_2024_van Veldhuizen WA_Machine Learning Based Prediction of Post-operative Infrarenal Endograft Apposition for Abdominal Aortic Aneurysms.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "151": {
+  "pdf": "006_2026_Cheng J_Predicting the growth of asymptomatic small abdominal aortic aneurysms (AAA) based on deep learning.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "152": {
+  "pdf": "192_2023_Tomihama R.T_Machine learning analysis of confounding variables of a convolutional neural network specific for abdominal aortic.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "153": {
+  "pdf": "233_2021_Abdominal Enhanced Computed Tomography Image by Artificial Intelligence Algorithm in the Diagnosis of Abdominal Aortic Aneurysm.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "154": {
+  "pdf": "045_2025_Chen H_Integrating CT-based radiomics and clinical features to better predict the prognosis of acute pancreatitis.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "155": {
+  "pdf": "030_2026_Zhou J_Multimodal prediction models integrating radiomics and three-dimensional deep learning for acute respiratory distre.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "156": {
+  "pdf": "112_2024_Radiomics-Based Machine Learning Model for Diagnosis of Acute Pancreatitis Using Computed Tomography.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "157": {
+  "pdf": "160_2024_Development and validation of a multimodal model in predicting severe acute pancreatitis based on radiomics and deep learning.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "158": {
+  "pdf": "162_2024_Zhang R_Application Value of the Automated Machine Learning Model Based on Modified Computed Tomography Severity Index Comb.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "159": {
+  "pdf": "010_2026_A Vision Transformer-Based Deep Learning Framework for Patient-Level Classification of Acute Pancreatitis and Normal Pancreas Using Computed Tomography.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "160": {
+  "pdf": "026_2026_Xu Y_Deep learning-based prediction of acute pancreatitis severity from abdominal CT with multicenter external validatio.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "161": {
+  "pdf": "024_2026_Multi-modal deep learning model for predicting recurrence of moderately severe and severe acute pancreatitis.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "162": {
+  "pdf": "049_2025_Gupta P_Application of deep learning models for accurate classification of fluid collections in acute necrotizing pancreati.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "163": {
+  "pdf": "097_2025_Tartari C_MRI and CT radiomics for the diagnosis of acute pancreatitis.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "164": {
+  "pdf": "125_2024_Hong Z_Detection of Peri-Pancreatic Edema using Deep Learning and Radiomics Techniques.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "165": {
+  "pdf": "060_2025_Radiomics-Based_Machine_Learning_Models_Improve_Ac.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "166": {
+  "pdf": "135_2024_Machine learning improves early prediction of organ failure in hyperlipidemia acute pancreatitis using clinical and abdominal CT features.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "167": {
+  "pdf": "126_2024_Hu R_A radiomics model of contrast-enhanced computed tomography for predicting post-acute pancreatitis diabetes mellitus.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "168": {
+  "pdf": "127_2024_Computed tomography-based body composition indicative of diabetes after hypertriglyceridemic acute pancreatitis.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "169": {
+  "pdf": "068_2025_Lu CX_Artificial intelligence models assisting physicians in quantifying pancreatic necrosis in acute pancreatitis.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "170": {
+  "pdf": "146_2024_Pan X_Artificial intelligence-based tools with automated segmentation and measurement on CT images to assist accurate and.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "171": {
+  "pdf": "104_2025_Yao Q_A Nomogram for Early Prediction of Infected Pancreatic Necrosis Based on Contrast-Enhanced CT Radiomics and Inflamm.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "172": {
+  "pdf": "147_2024_Qi M_Prediction of acute pancreatitis severity based on early CT radiomics.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "173": {
+  "pdf": "183_2023_Liang H_Predicting acute pancreatitis severity with enhanced computed tomography scans using convolutional neural networks.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "174": {
+  "pdf": "196_2023_Xue M_The value of CT-based radiomics in predicting the prognosis of acute pancreatitis.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "175": {
+  "pdf": "104_2025_Yao Q_A Nomogram for Early Prediction of Infected Pancreatic Necrosis Based on Contrast-Enhanced CT Radiomics and Inflamm.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "176": {
+  "pdf": "099_2025_Wan X_Development of an interpretable machine learning model based on CT radiomics for the prediction of post acute pancr.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "177": {
+  "pdf": "062_2025_Kim M_Development and validation of automated three-dimensional convolutional neural network model for acute appendicitis.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "178": {
+  "pdf": "041_2025_C. -W. Huang_A Hierarchical Slice Attention Network for Appendicitis Classification in 3D CT Scans.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "179": {
+  "pdf": "094_2025_Takaishi T_Deep learning for appendicitis development of a three-dimensional localization model on CT.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "180": {
+  "pdf": "055_2025_J. R. M. Done_Automated Detection of Acute Appendicitis from Contrast-enhanced CT Scans using Generative Adversarial Networks for.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "181": {
+  "pdf": "121_2024_Deep_learning_system_for_abdominal_disease_detection_and_localization.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "182": {
+  "pdf": "123_2024_Hariri M_LesionScanNet dual-path convolutional neural network for acute appendicitis diagnosis.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "183": {
+  "pdf": "164_2024_Zhao Y_Combination of clinical information and radiomics models for the differentiation of acute simple appendicitis and n.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "184": {
+  "pdf": "110_2024_An J_Efficacy of automated machine learning models and feature engineering for diagnosis of equivocal appendicitis using.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "185": {
+  "pdf": "193_2023_LSSED A Robust Segmentation Network for Inflamed Appendix from CT Images.txt",
+  "how": "title",
+  "score": 0.917
+ },
+ "186": {
+  "pdf": "111_2024_Baştuğ BT_Fully Automated Detection of the Appendix Using U-Net Deep Learning Architecture in CT Scans.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "187": {
+  "pdf": "170_2023_Diagnostic Algorithm Based on Machine Learning to Predict Complicated Appendicitis in Children Using CT, Laboratory, and Clinical Features.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "188": {
+  "pdf": "134_2024_Liang D_Development and Validation of a Deep Learning and Radiomics Combined Model for Differentiating Complicated From Unc.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "189": {
+  "pdf": "227_2021_Noguchi T_A fundamental study assessing the generalized fitting method in conjunction with every possible coalition of N-comb.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "190": {
+  "pdf": "044_2025_Deep learning enables accurate diagnosis of acute cholecystitis and prediction of suppuration using noncontrast CT.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "191": {
+  "pdf": "092_2025_Sun RT_A radiomics-clinical predictive model for difficult laparoscopic cholecystectomy based on preoperative CT imaging a.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "192": {
+  "pdf": "184_2023_M. A. Rahman_Attention and Pooling based Sigmoid Colon Segmentation in 3D CT images.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "193": {
+  "pdf": null,
+  "how": "NONE",
+  "score": 0
+ },
+ "194": {
+  "pdf": "062_2025_Kim M_Development and validation of automated three-dimensional convolutional neural network model for acute appendicitis.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "195": {
+  "pdf": "136_2024_Lippenberger F_Development of an image-based Random Forest classifier for prediction of surgery duration of laparoscopic sigmoid r.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "196": {
+  "pdf": "142_2024_Ma Y_Early prediction of acute gallstone pancreatitis severity a novel machine learning model based on CT features and o.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "197": {
+  "pdf": "188_2023_Park SH_Comparison between single and serial computed tomography images in classification of acute appendicitis, acute righ.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "198": {
+  "pdf": "151_2024_Disease Detection in Abdominal CT Images Using the YOLOv5 Algorithm A Deep Learning Approach.txt",
+  "how": "title",
+  "score": 1.0
+ },
+ "199": {
+  "pdf": "215_2022_A Cascaded Multi-Task Generative Framework for Detecting Aortic Dissection on 3-D Non-Contrast-Enhanced Computed Tomography.txt",
+  "how": "title",
+  "score": 0.66
+ },
+ "200": {
+  "pdf": "001_2026_Andreoli F_NornirNet A Deep Learning Framework to Distinguish Benign from Malignant Type II Endoleaks After Endovascular Aorti.txt",
+  "how": "doi",
+  "score": 1.0
+ },
+ "201": {
+  "pdf": "108_2024_Abaid A_To Train, or Not to Train Exploring Foundation Models for TBAD Segmentation.txt",
+  "how": "doi",
+  "score": 1.0
+ }
+}

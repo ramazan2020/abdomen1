@@ -22,3 +22,5 @@ kaggle/
 runs/
 nndet_venv/
 nnDetection/
+node_modules/
+.next/

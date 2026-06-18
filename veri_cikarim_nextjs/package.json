@@ -1,0 +1,14 @@
+{
+  "name": "veri-cikarim-formu",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": { "dev": "next dev", "build": "next build", "start": "next start",
+    "db:setup": "psql \"$DATABASE_URL\" -f db/schema.sql -f db/seed.sql" },
+  "dependencies": {
+    "next": "14.2.5", "react": "18.3.1", "react-dom": "18.3.1",
+    "recharts": "2.12.7", "pg": "8.12.0"
+  },
+  "devDependencies": {
+    "@types/node": "20.14.0", "@types/react": "18.3.3", "@types/pg": "8.11.6", "typescript": "5.5.3"
+  }
+}
