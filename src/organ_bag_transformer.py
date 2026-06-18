@@ -58,6 +58,14 @@ class OBTConfig:
     dropout: float = 0.1
     encoder_pretrained: bool = True
     max_z_position: int = 512      # z-pozisyon embedding boyutu
+    # CT-MAE ön-eğitim desteği (K4 ablasyonu)
+    ct_mae_ckpt: Optional[str] = None   # Path — verilirse encoder ağırlıkları buradan yüklenir
+    freeze_encoder_epochs: int = 0      # >0 → ilk N epoch encoder dondurulur (Stage 2)
+    # Yapısal ablasyon bayrakları (A1–A4 deneyleri)
+    use_cross_organ: bool = True   # A1: False → organ_tokens cross-organ tf'yi atlar
+    use_organ_bag: bool = True     # A2: False → tüm dilimler tek global bag
+    use_anatomy_gate: bool = True  # A3: False → FCOS anatomy gate devre dışı
+    use_patient_head: bool = True  # A4: False → sadece FCOS (patient_logits sıfır döner)
 
 
 # ---------------------------------------------------------------------------
@@ -320,10 +328,14 @@ class OrganBagTransformer(nn.Module):
 
         self.encoder = timm.create_model(
             cfg.encoder,
-            pretrained=cfg.encoder_pretrained,
+            pretrained=cfg.encoder_pretrained and (cfg.ct_mae_ckpt is None),
             num_classes=0,
             features_only=True,
         )
+        # CT-MAE ön-eğitim ağırlıklarını yükle (K4 ablasyonu)
+        if cfg.ct_mae_ckpt is not None:
+            self._load_ct_mae_encoder(cfg.ct_mae_ckpt)
+
         enc_channels = self.encoder.feature_info[-1]["num_chs"]  # ConvNeXt-S: 768
 
         # Kanal projeksiyon: enc_channels → d_model
@@ -366,6 +378,9 @@ class OrganBagTransformer(nn.Module):
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Stage 1 eğitimi ve dilim-düzeyi çıkarım."""
         feat = self.encode_slices(slice_batch)
+        # A3: anatomy gate devre dışı → enriched_tokens=None ile çağır
+        if not self.cfg.use_anatomy_gate:
+            enriched_tokens = None
         return self.fcos_head(feat, enriched_tokens)
 
     def case_forward(
@@ -381,10 +396,53 @@ class OrganBagTransformer(nn.Module):
             attn_weights    : {organ_idx: Tensor(1,1,L_k) veya None}
             patient_logits  : (n_classes,)
         """
+        # A2: organ bag yapısı yok → tüm dilimler tek global bag
+        if not self.cfg.use_organ_bag:
+            D = slice_features.shape[0]
+            z_ranges = {k: (0, D - 1) for k in range(N_ORGANS)}
+
         organ_tokens, attn_weights = self.organ_bag_attn(slice_features, z_ranges)
-        enriched = self.cross_organ_tf(organ_tokens)
+
+        # A1: cross-organ transformer yok → organ_tokens direkt patient_head'e
+        if self.cfg.use_cross_organ:
+            enriched = self.cross_organ_tf(organ_tokens)
+        else:
+            enriched = organ_tokens
+
+        # A4: patient head yok → sıfır logit döner (kayıp ağırlığı 0 olmalı)
+        if not self.cfg.use_patient_head:
+            dummy_logits = torch.zeros(N_CLASSES, device=slice_features.device)
+            return enriched, attn_weights, dummy_logits
+
         patient_logits = self.patient_head(enriched)
         return enriched, attn_weights, patient_logits
+
+    def _load_ct_mae_encoder(self, ckpt_path: str) -> None:
+        """
+        CT-MAE checkpoint'inden ConvNeXt-S omurga ağırlıklarını yükler.
+        features_only=True ile oluşturulan self.encoder'a uyumlu hale getirir.
+        """
+        import re
+        state = torch.load(ckpt_path, map_location="cpu")
+        mae_sd = state.get("model", state)
+        # CT-MAE backbone.* → OBT encoder.* eşlemesi
+        enc_sd = {}
+        for k, v in mae_sd.items():
+            if k.startswith("backbone."):
+                new_k = k[len("backbone."):]
+                enc_sd[new_k] = v
+        missing, unexpected = self.encoder.load_state_dict(enc_sd, strict=False)
+        print(
+            f"CT-MAE encoder yüklendi: {ckpt_path}\n"
+            f"  eksik={len(missing)}  beklenmeyen={len(unexpected)}"
+        )
+
+    def freeze_encoder(self, frozen: bool = True) -> None:
+        """Stage 2'de encoder'ı dondur / aç."""
+        for p in self.encoder.parameters():
+            p.requires_grad = not frozen
+        for p in self.chan_proj.parameters():
+            p.requires_grad = not frozen
 
     def param_groups(self) -> List[Dict]:
         """3 parametre grubu: encoder (düşük LR), yeni modüller (yüksek LR)."""

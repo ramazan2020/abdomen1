@@ -71,7 +71,8 @@ def _process_manifest_row(args: tuple):
 def export_yolo_dataset(fold: int,
                         out_root: Path = DET_DATA_DIR,
                         include_val_negatives: bool = True,
-                        bbox_only: bool = True) -> Path:
+                        bbox_only: bool = True,
+                        include_train_negatives: bool = False) -> Path:
     """
     Ultralytics YOLOv8'in beklediği yapıyı kurar:
         out_root/foldN/
@@ -85,6 +86,11 @@ def export_yolo_dataset(fold: int,
 
     bbox_only=True (varsayılan): yalnızca Type == "Bounding Box" annotasyonu
     olan kesitler işlenir; Boundary Slice'a ait kesitler YOLO'ya girmez.
+
+    include_train_negatives=True: bbox annotasyonu olmayan vakaların (negatif
+    hastalar) tüm dilimleri boş label dosyasıyla train setine eklenir.
+    Model yanlış pozitif üretmemeyi bu örneklerden öğrenir; özgüllük artar.
+    YOLO için background sınıf eklemek GEREKMEZ — boş label yeterlidir.
     """
     out_root = Path(out_root)
     fold_dir = out_root / f"fold{fold}"
@@ -97,21 +103,21 @@ def export_yolo_dataset(fold: int,
     for cache in (fold_dir / "labels").glob("*.cache"):
         cache.unlink(missing_ok=True)
 
-    manifest = pd.read_csv(SPLIT_DIR / "manifest.csv")
+    manifest_full = pd.read_csv(SPLIT_DIR / "manifest.csv")
 
     # ── Bounding Box filtresi ─────────────────────────────────────────────
-    # YOLO'ya yalnızca Type == "Bounding Box" annotasyonu olan kesitler girer.
-    # preprocessing.build_manifest() zaten bu garantiyi sağlar; buradaki filtre
-    # ek savunma katmanıdır (Boundary Slice satırları bboxes sütununu boş bırakır).
     if bbox_only:
-        n_before = len(manifest)
-        manifest = manifest[manifest["bboxes"].fillna("").str.strip() != ""].copy()
+        n_before = len(manifest_full)
+        manifest = manifest_full[manifest_full["bboxes"].fillna("").str.strip() != ""].copy()
         n_skipped = n_before - len(manifest)
         if n_skipped:
             print(f"BBox filtresi: {n_skipped:,} bbox'sız satır dışlandı "
                   f"→ {len(manifest):,} kesit işlenecek")
+    else:
+        manifest = manifest_full
+
     train_cases = set(pd.read_csv(SPLIT_DIR / f"fold{fold}_train.csv")["Case Number"])
-    val_cases = set(pd.read_csv(SPLIT_DIR / f"fold{fold}_val.csv")["Case Number"])
+    val_cases   = set(pd.read_csv(SPLIT_DIR / f"fold{fold}_val.csv")["Case Number"])
 
     tasks: List[tuple] = []
     for _, row in manifest.iterrows():
@@ -123,6 +129,18 @@ def export_yolo_dataset(fold: int,
         else:
             continue
         tasks.append((row.to_dict(), split, str(fold_dir), include_val_negatives))
+
+    # ── Negatif vakalar (boş label ile train'e ekle) ──────────────────────
+    if include_train_negatives and bbox_only:
+        _cases_with_bbox = set(manifest["case"].astype(str))
+        _neg_train = {c for c in train_cases if c not in _cases_with_bbox}
+        if _neg_train:
+            neg_rows = manifest_full[manifest_full["case"].astype(str).isin(_neg_train)]
+            print(f"Negatif vakalar: {len(_neg_train)} vaka, "
+                  f"{len(neg_rows):,} dilim → train (boş label)")
+            for _, row in neg_rows.iterrows():
+                # include_val_negatives=True → worker bu satırı atlamaz
+                tasks.append((row.to_dict(), "train", str(fold_dir), True))
 
     cpu_count = multiprocessing.cpu_count() or 2
     if platform.system() == "Darwin":
@@ -471,13 +489,17 @@ class YoloPipeline:
         self.fold_dir = self.out_root / f"fold{fold}"
         self.weights: Path | None = None
 
-    def export(self, include_val_negatives: bool = True, bbox_only: bool = True) -> Path:
+    def export(self,
+               include_val_negatives: bool = True,
+               bbox_only: bool = True,
+               include_train_negatives: bool = False) -> Path:
         """YOLO PNG + label dataset'ini diske yazar; fold_dir döner."""
         path = export_yolo_dataset(
             self.fold,
             out_root=self.out_root,
             include_val_negatives=include_val_negatives,
             bbox_only=bbox_only,
+            include_train_negatives=include_train_negatives,
         )
         return path
 
