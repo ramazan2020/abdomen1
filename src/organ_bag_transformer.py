@@ -465,7 +465,11 @@ class OBTLoss(nn.Module):
         bce = F.binary_cross_entropy_with_logits(logits, targets, reduction="none")
         pt = torch.exp(-bce)
         focal = (1 - pt) ** self.gamma * bce
-        focal = focal * self.class_weights.to(logits.device)
+        weights = self.class_weights.to(logits.device)
+        if logits.dim() == 4:
+            # (B, C, H, W) dense map: class dim is 1, not the last axis.
+            weights = weights.view(1, -1, 1, 1)
+        focal = focal * weights
         return focal.mean()
 
     def forward(
