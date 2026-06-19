@@ -6,7 +6,7 @@ YOLOv8 için veri hazırlığı ve eğitim sarmalayıcısı.
    kesiti PNG olarak yazar ve her kesit için YOLO txt etiketi üretir (6 üst sınıf).
 2. `train_yolo(fold)` — Ultralytics YOLO'yu çağırır.
 3. `predict_volume(case_id)` — Bir vakanın tüm kesitlerinde inference yapar;
-   3B post-processing ile ardışık kesit süreklilik kuralı uygular.
+   3D post-processing ile ardışık kesit süreklilik kuralı uygular.
 """
 from __future__ import annotations
 
@@ -368,7 +368,7 @@ def train_yolo(fold: int, cfg=DEFAULT_DET, project: str = "runs/det") -> Path:
 
 
 # ---------------------------------------------------------------------------
-# İNFERANS + 3B POST-PROCESSING
+# İNFERANS + 3D POST-PROCESSING
 # ---------------------------------------------------------------------------
 def predict_volume(weights: Path,
                    case_dir: Path,

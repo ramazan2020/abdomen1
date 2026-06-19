@@ -75,7 +75,7 @@ def hu_to_three_channel(hu: np.ndarray,
 # ---------------------------------------------------------------------------
 @dataclass
 class CTSeries:
-    """Bir vakaya ait tüm DICOM kesitlerini bellekte 3B olarak tutar."""
+    """Bir vakaya ait tüm DICOM kesitlerini bellekte 3D olarak tutar."""
     case_id: str
     image_ids: List[int]        # kesitlerin Image Id'si (Bilgi.xlsx ile eşleşen)
     hu: np.ndarray              # (Z, Y, X) HU
@@ -122,7 +122,7 @@ def load_series_ids(case_dir: Path) -> List[int]:
 
 
 def load_series(case_dir: Path) -> CTSeries:
-    """Bir vaka klasöründeki tüm .dcm dosyalarını okuyup 3B volüm üretir."""
+    """Bir vaka klasöründeki tüm .dcm dosyalarını okuyup 3D volüm üretir."""
     dcm_paths = sorted(
         p for p in case_dir.iterdir()
         if p.suffix.lower() == ".dcm" and not p.name.startswith("._")
