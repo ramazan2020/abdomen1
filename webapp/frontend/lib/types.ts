@@ -105,7 +105,41 @@ export interface AnnotationDto {
   created_at: string;
 }
 
-// src/config.py SUPER_CLASSES ile birebir (plan Bölüm "Kritik dosyalar")
+// ── Training / Dataset Snapshot (Faz 3) ───────────────────────────────────
+export interface SnapshotDto {
+  id: string;
+  snapshot_name: string;
+  description: string | null;
+  notes: string | null;
+  included_cases_count: number | null;
+  included_annotations_count: number | null;
+  source: string;
+  manifest_storage_key: string | null;
+  created_at: string;
+}
+
+export interface TrainingJobDto {
+  id: string;
+  job_type: string;
+  architecture: string;
+  params: Record<string, unknown>;
+  dataset_snapshot_id: string;
+  status: "queued" | "running" | "succeeded" | "failed" | "cancelled";
+  progress_percent: number | null;
+  current_epoch: number | null;
+  best_metric: Record<string, number> | null;
+  error_message: string | null;
+  cancel_requested: boolean;
+  log_storage_key: string | null;
+  queue_job_id: string | null;
+  started_at: string | null;
+  finished_at: string | null;
+  heartbeat_at: string | null;
+  result_model_version_id: string | null;
+  created_at: string;
+}
+
+// ── src/config.py SUPER_CLASSES ile birebir (plan Bölüm "Kritik dosyalar") ─
 export const LESION_CLASSES = [
   "acute_cholecystitis",
   "kidney_ureter_stone",
