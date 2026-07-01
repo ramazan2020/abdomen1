@@ -1,7 +1,7 @@
 """
 Yarı-denetimli anatomik segmentasyon hattı.
 
-Bilgi.xlsx içindeki `Boundary Slice` annotasyonları yalnızca bir organın 3B
+Bilgi.xlsx içindeki `Boundary Slice` annotasyonları yalnızca bir organın 3D
 başlangıç/bitiş kesitini belirtir; piksel maskesi yoktur. Bu yüzden:
 
  1) TotalSegmentator ile her vaka için 104 organlık ön-tahmin maskesi çıkarılır.
