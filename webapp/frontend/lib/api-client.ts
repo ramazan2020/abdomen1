@@ -45,6 +45,26 @@ async function requestRaw(path: string): Promise<string> {
   return res.text();
 }
 
+async function requestDownload(path: string, fallbackFilename: string): Promise<void> {
+  const token = getToken();
+  const headers = new Headers();
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+  const res = await fetch(`${API_BASE_URL}${path}`, { headers });
+  if (!res.ok) throw new ApiError(res.status, res.statusText);
+  const disposition = res.headers.get("Content-Disposition") ?? "";
+  const fnMatch = disposition.match(/filename="?([^";\r\n]+)"?/);
+  const filename = fnMatch ? fnMatch[1] : fallbackFilename;
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 export const api = {
   get: <T>(path: string) => request<T>(path),
   getRaw: (path: string) => requestRaw(path),
@@ -56,6 +76,7 @@ export const api = {
     request<T>(path, { method: "PATCH", body: body ? JSON.stringify(body) : undefined }),
   del: <T>(path: string) => request<T>(path, { method: "DELETE" }),
   postForm: <T>(path: string, form: FormData) => request<T>(path, { method: "POST", body: form }),
+  download: (path: string, fallbackFilename = "download") => requestDownload(path, fallbackFilename),
 };
 
 export async function loginRequest(email: string, password: string): Promise<{ access_token: string }> {

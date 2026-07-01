@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.v1 import annotations, auth, cases, datasets, inference, models, training
+from app.api.v1 import annotations, auth, cases, datasets, evaluation, inference, models, training
 from app.core.config import get_settings
 
 settings = get_settings()
@@ -24,6 +24,7 @@ app.include_router(models.router, prefix="/api/v1")
 app.include_router(inference.router, prefix="/api/v1")
 app.include_router(training.router, prefix="/api/v1")
 app.include_router(datasets.router, prefix="/api/v1")
+app.include_router(evaluation.router, prefix="/api/v1")
 
 
 @app.get("/api/v1/health")

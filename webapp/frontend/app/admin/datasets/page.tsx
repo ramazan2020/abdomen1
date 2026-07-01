@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api-client";
 import { CaseListItem, DatasetDto } from "@/lib/types";
 
-const SOURCE_OPTIONS = ["webapp", "Balli2020", "external", "mixed"];
+const SOURCE_OPTIONS = ["webapp", "external", "mixed"];
 
 const REVIEW_BADGE: Record<string, { bg: string; color: string }> = {
   unreviewed:            { bg: "var(--bg-elevated)",   color: "var(--text-3)" },
@@ -129,7 +129,7 @@ export default function AdminDatasetsPage() {
                   className="form-input"
                   value={name}
                   onChange={e => setName(e.target.value)}
-                  placeholder="örn. Balli2020-train"
+                  placeholder="örn. Kardiyoloji Vakaları"
                 />
               </div>
               <div className="form-group">

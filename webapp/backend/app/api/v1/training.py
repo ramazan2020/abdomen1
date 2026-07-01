@@ -15,6 +15,11 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 
+import csv
+import io
+import json as _json
+import zipfile
+
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.responses import PlainTextResponse
 from sqlalchemy import func, select, desc
@@ -108,6 +113,63 @@ def list_snapshots(
         select(DatasetSnapshot).order_by(desc(DatasetSnapshot.created_at))
     ).scalars().all()
     return [_snap_dto(r) for r in rows]
+
+
+@router.get("/snapshots/{snapshot_id}/export")
+def export_snapshot(
+    snapshot_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    _admin: User = Depends(require_admin),
+) -> Response:
+    """Snapshot annotasyonlarını zip olarak indir: manifest.json + annotations.csv + YOLO labels."""
+    snap = db.get(DatasetSnapshot, snapshot_id)
+    if snap is None:
+        raise HTTPException(status_code=404, detail="Snapshot bulunamadı")
+    if not snap.manifest_storage_key:
+        raise HTTPException(status_code=422, detail="Snapshot manifest'i bulunamadı")
+
+    manifest = dataset_export_service.load_manifest(snap.manifest_storage_key)
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr("manifest.json", _json.dumps(manifest, ensure_ascii=False, indent=2))
+
+        csv_buf = io.StringIO()
+        writer = csv.writer(csv_buf)
+        writer.writerow(["case_id", "case_label", "image_id", "class_id", "geometry_type", "x1", "y1", "x2", "y2"])
+        for case_data in manifest.get("cases", []):
+            for s in case_data.get("slices", []):
+                for ann in s.get("annotations", []):
+                    geo = ann.get("geometry", {})
+                    if ann.get("geometry_type") == "bbox":
+                        writer.writerow([
+                            case_data["case_id"], case_data.get("case_label", ""),
+                            s["image_id"], ann["class_id"], "bbox",
+                            geo.get("x1", ""), geo.get("y1", ""),
+                            geo.get("x2", ""), geo.get("y2", ""),
+                        ])
+        zf.writestr("annotations.csv", csv_buf.getvalue())
+
+        for case_data in manifest.get("cases", []):
+            label = case_data.get("case_label", case_data["case_id"])
+            for s in case_data.get("slices", []):
+                lines = []
+                for ann in s.get("annotations", []):
+                    if ann.get("geometry_type") == "bbox":
+                        geo = ann.get("geometry", {})
+                        lines.append(
+                            f"{ann['class_id']} {geo.get('x1', 0):.2f} {geo.get('y1', 0):.2f} "
+                            f"{geo.get('x2', 0):.2f} {geo.get('y2', 0):.2f}"
+                        )
+                if lines:
+                    zf.writestr(f"labels/{label}_{s['image_id']}.txt", "\n".join(lines))
+
+    snap_name = snap.snapshot_name.replace(" ", "_")
+    return Response(
+        content=buf.getvalue(),
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="snapshot_{snap_name}.zip"'},
+    )
 
 
 @router.get("/snapshots/{snapshot_id}", response_model=SnapshotDto)
@@ -214,9 +276,31 @@ def cancel_job(
         )
 
     job.cancel_requested = True
+    if job.status == "queued":
+        # Worker henüz başlatmadı — doğrudan iptal et
+        job.status = "cancelled"
     db.commit()
     db.refresh(job)
     return _job_dto(job)
+
+
+@router.delete("/jobs/{job_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
+def delete_job(
+    job_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    _user: User = Depends(require_admin),
+):
+    """Yalnızca failed veya cancelled jobları siler."""
+    job = db.get(TrainingJob, job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Job bulunamadı")
+    if job.status not in ("failed", "cancelled"):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Yalnızca failed/cancelled joblar silinebilir (mevcut: {job.status})",
+        )
+    db.delete(job)
+    db.commit()
 
 
 # ── DTO dönüştürücüler ────────────────────────────────────────────────────────

@@ -13,10 +13,12 @@ python-multipart==0.0.20
 redis==5.2.1
 rq==2.1.0
 pydicom==2.4.4
+pylibjpeg[all]>=2.0  # pydicom 2.4 pillow_handler int16 taşma düzeltmesi (JPEG-sıkıştırmalı CT)
 numpy>=1.24
 Pillow>=10.0
 pandas>=2.0
 tqdm>=4.66
+ensemble-boxes>=0.3.3
 
 # Not: ultralytics/torch/opencv buraya BİLEREK eklenmedi — src/detection.py vb.
 # bu importları fonksiyon içinde (lazy) yapıyor; bu sayede backend, GPU/torch

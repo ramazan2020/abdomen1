@@ -32,7 +32,8 @@ const ICONS = {
   cpu:      "M18 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zM9 9h6M9 15h6",
   layers:   "M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5",
   database: "M12 2C6.477 2 2 4.477 2 7s4.477 5 10 5 10-2.477 10-5-4.477-5-10-5zM2 17c0 2.523 4.477 5 10 5s10-2.477 10-5M2 12c0 2.523 4.477 5 10 5s10-2.477 10-5",
-  activity: "M22 12h-4l-3 9L9 3l-3 9H2",
+  activity:  "M22 12h-4l-3 9L9 3l-3 9H2",
+  barChart:  "M18 20V10M12 20V4M6 20v-6",
   settings: "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z",
   logout:   "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9",
   chevronLeft:  "M15 18l-6-6 6-6",
@@ -48,13 +49,14 @@ interface NavItem {
 }
 
 const DOCTOR_NAV: NavItem[] = [
+  { href: "/admin/datasets",   label: "Veri Setleri",      icon: "database" },
   { href: "/doctor",        label: "Vaka Listesi",     icon: "list" },
 ];
 
 const ADMIN_NAV: NavItem[] = [
-  { href: "/admin/models",    label: "Model Registry",    icon: "cpu" },
-  { href: "/admin/training",  label: "Eğitim Yönetimi",  icon: "activity" },
-  { href: "/admin/datasets",  label: "Veri Setleri",      icon: "database" },
+  { href: "/admin/models",     label: "Model Registry",    icon: "cpu" },
+  { href: "/admin/training",   label: "Eğitim Yönetimi",  icon: "activity" },
+  { href: "/admin/evaluation", label: "Değerlendirme",     icon: "barChart" },
 ];
 
 export function AppSidebar() {

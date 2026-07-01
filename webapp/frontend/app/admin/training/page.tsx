@@ -63,6 +63,8 @@ export default function TrainingPage() {
   const [viewLogId, setViewLogId] = useState<string | null>(null);
   const [activatingJobId, setActivatingJobId] = useState<string | null>(null);
   const [activateRunMode, setActivateRunMode] = useState<"default" | "comparison">("comparison");
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [jobActionError, setJobActionError] = useState<string | null>(null);
 
   // ── Queries ───────────────────────────────────────────────────────────────
   const { data: stats } = useQuery({
@@ -160,8 +162,28 @@ export default function TrainingPage() {
   });
 
   const cancelMutation = useMutation({
-    mutationFn: (jobId: string) => api.post(`/training/jobs/${jobId}/cancel`),
+    mutationFn: (jobId: string) => {
+      setCancellingId(jobId);
+      setJobActionError(null);
+      return api.post(`/training/jobs/${jobId}/cancel`);
+    },
+    onSuccess: () => {
+      setCancellingId(null);
+      queryClient.invalidateQueries({ queryKey: ["training-jobs"] });
+    },
+    onError: (err: Error) => {
+      setCancellingId(null);
+      setJobActionError(err.message);
+    },
+  });
+
+  const deleteJobMutation = useMutation({
+    mutationFn: (jobId: string) => {
+      setJobActionError(null);
+      return api.del(`/training/jobs/${jobId}`);
+    },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["training-jobs"] }),
+    onError: (err: Error) => setJobActionError(err.message),
   });
 
   const activateMutation = useMutation({
@@ -377,9 +399,23 @@ export default function TrainingPage() {
                     <span style={{ fontSize: 13, fontWeight: 600, color: selSnapId === s.id ? "var(--accent)" : "var(--text-1)" }}>
                       {s.snapshot_name}
                     </span>
-                    <span style={{ fontSize: 11, color: "var(--text-3)" }}>
-                      {new Date(s.created_at).toLocaleDateString("tr-TR")}
-                    </span>
+                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                      <span style={{ fontSize: 11, color: "var(--text-3)" }}>
+                        {new Date(s.created_at).toLocaleDateString("tr-TR")}
+                      </span>
+                      {s.manifest_storage_key && (
+                        <button
+                          className="btn btn-sm btn-secondary"
+                          onClick={e => {
+                            e.stopPropagation();
+                            api.download(`/training/snapshots/${s.id}/export`, `snapshot_${s.snapshot_name}.zip`);
+                          }}
+                          title="YOLO/CSV zip olarak indir"
+                        >
+                          ↓ İndir
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 3 }}>
                     {s.included_cases_count ?? 0} vaka · {s.included_annotations_count ?? 0} annotasyon
@@ -446,6 +482,17 @@ export default function TrainingPage() {
         <h2 style={{ marginTop: 0, marginBottom: 16, fontSize: 15, fontWeight: 700, color: "var(--text-1)" }}>
           Eğitim İşleri
         </h2>
+        {jobActionError && (
+          <div className="alert alert-danger" style={{ marginBottom: 12 }}>
+            {jobActionError}
+            <button
+              style={{ marginLeft: 12, background: "none", border: "none", cursor: "pointer", color: "inherit", fontWeight: 700 }}
+              onClick={() => setJobActionError(null)}
+            >
+              ✕
+            </button>
+          </div>
+        )}
         {(!jobs || jobs.length === 0) && (
           <div className="empty-state">
             <div className="empty-state-icon">🏋️</div>
@@ -526,9 +573,12 @@ export default function TrainingPage() {
                           <button
                             className="btn btn-sm btn-danger"
                             onClick={() => cancelMutation.mutate(job.id)}
-                            disabled={cancelMutation.isPending}
+                            disabled={cancellingId === job.id}
                           >
-                            İptal
+                            {cancellingId === job.id
+                              ? <><span className="spinner" />…</>
+                              : "İptal"
+                            }
                           </button>
                         )}
                         {job.status === "succeeded" && job.result_model_version_id && (
@@ -540,6 +590,16 @@ export default function TrainingPage() {
                             }}
                           >
                             Aktifleştir
+                          </button>
+                        )}
+                        {(job.status === "failed" || job.status === "cancelled") && (
+                          <button
+                            className="btn btn-sm btn-secondary"
+                            onClick={() => deleteJobMutation.mutate(job.id)}
+                            disabled={deleteJobMutation.isPending}
+                            title="Bu kaydı listeden sil"
+                          >
+                            Sil
                           </button>
                         )}
                       </div>

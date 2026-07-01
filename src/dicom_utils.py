@@ -45,7 +45,16 @@ def read_dicom(path: Path) -> FileDataset:
 
 def dicom_to_hu(ds: FileDataset) -> np.ndarray:
     """Ham piksel değerini Hounsfield Unit'e çevirir."""
-    arr = ds.pixel_array.astype(np.float32)
+    try:
+        arr = ds.pixel_array.astype(np.float32)
+    except (OverflowError, RuntimeError):
+        # pydicom 2.4 pillow_handler int16 taşması (JPEG-sıkıştırmalı CT'lerde görülür).
+        # pylibjpeg kuruluysa bu dalı kullanmaz. Sıkıştırılmamış veri için uint16→int16 görüntüsü.
+        try:
+            raw = np.frombuffer(bytes(ds.PixelData), dtype=np.uint16).reshape(ds.Rows, ds.Columns)
+            arr = raw.view(np.int16).astype(np.float32)
+        except Exception:
+            arr = np.full((ds.Rows, ds.Columns), -1024.0, dtype=np.float32)
     slope = float(getattr(ds, "RescaleSlope", 1.0) or 1.0)
     intercept = float(getattr(ds, "RescaleIntercept", 0.0) or 0.0)
     hu = arr * slope + intercept

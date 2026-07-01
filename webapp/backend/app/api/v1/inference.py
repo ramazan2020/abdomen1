@@ -1,11 +1,12 @@
 import uuid
+from collections import defaultdict
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.deps import get_current_user, require_doctor_or_admin
-from app.db.models import Case, InferenceBatch, InferenceRun, ModelVersion, User
+from app.db.models import Annotation, Case, InferenceBatch, InferenceRun, ModelOutput, ModelVersion, User
 from app.db.session import get_db
 from app.schemas.inference import (
     InferenceBatchResponse,
@@ -99,6 +100,101 @@ def run_comparison(
 @router.get("/batches/{batch_id}", response_model=InferenceBatchResponse)
 def get_batch(batch_id: uuid.UUID, db: Session = Depends(get_db), _user: User = Depends(get_current_user)) -> InferenceBatch:
     return _get_batch_or_404(db, batch_id)
+
+
+@router.post("/batches/{batch_id}/consensus")
+def compute_consensus(
+    batch_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    _user: User = Depends(require_doctor_or_admin),
+) -> dict:
+    """Weighted Boxes Fusion — batch'teki tüm bbox tahminlerini ensemble eder.
+
+    Sonuç saklanmaz; çağıran (frontend) kutulara overlay için kullanır.
+    Koordinatlar orijinal piksel uzayındadır (512×512 normaliz. varsayımıyla)."""
+    batch = _get_batch_or_404(db, batch_id)
+
+    succeeded_mv_ids = [r.model_version_id for r in batch.runs if r.status == "succeeded"]
+    if not succeeded_mv_ids:
+        raise HTTPException(status_code=422, detail="Başarılı inference run bulunamadı")
+
+    bbox_output_ids = [
+        o.id for o in db.execute(
+            select(ModelOutput).where(
+                ModelOutput.model_version_id.in_(succeeded_mv_ids),
+                ModelOutput.output_type == "bbox",
+            )
+        ).scalars().all()
+    ]
+    if not bbox_output_ids:
+        raise HTTPException(status_code=422, detail="Bu batch'te bbox çıktısı olan model bulunamadı")
+
+    pred_anns = db.execute(
+        select(Annotation).where(
+            Annotation.case_id == batch.case_id,
+            Annotation.source == "prediction",
+            Annotation.model_output_id.in_(bbox_output_ids),
+            Annotation.geometry_type == "bbox",
+            Annotation.status == "active",
+        )
+    ).scalars().all()
+
+    if not pred_anns:
+        raise HTTPException(status_code=422, detail="Bu batch'te bbox tahmini bulunamadı")
+
+    try:
+        from ensemble_boxes import weighted_boxes_fusion
+    except ImportError as exc:
+        raise HTTPException(status_code=503, detail=f"ensemble-boxes kütüphanesi kurulu değil: {exc}")
+
+    NORM = 512.0
+    by_image: dict[int, dict[str, list]] = defaultdict(lambda: defaultdict(list))
+    for a in pred_anns:
+        geo = a.geometry or {}
+        oid = str(a.model_output_id)
+        by_image[a.image_id][oid].append({
+            "box": [
+                geo.get("x1", 0) / NORM, geo.get("y1", 0) / NORM,
+                geo.get("x2", 0) / NORM, geo.get("y2", 0) / NORM,
+            ],
+            "score": float(a.confidence) if a.confidence is not None else 0.5,
+            "label": float(a.class_id),
+        })
+
+    consensus_boxes: list[dict] = []
+    model_count = len({str(a.model_output_id) for a in pred_anns})
+
+    for image_id, by_output in sorted(by_image.items()):
+        boxes_list, scores_list, labels_list = [], [], []
+        for out_anns in by_output.values():
+            boxes_list.append([d["box"] for d in out_anns])
+            scores_list.append([d["score"] for d in out_anns])
+            labels_list.append([d["label"] for d in out_anns])
+
+        try:
+            wbf_boxes, wbf_scores, wbf_labels = weighted_boxes_fusion(
+                boxes_list, scores_list, labels_list, iou_thr=0.55, skip_box_thr=0.0001
+            )
+        except Exception:
+            continue
+
+        for box, score, label in zip(wbf_boxes, wbf_scores, wbf_labels):
+            consensus_boxes.append({
+                "image_id": image_id,
+                "class": int(label),
+                "x1": float(box[0] * NORM), "y1": float(box[1] * NORM),
+                "x2": float(box[2] * NORM), "y2": float(box[3] * NORM),
+                "score": float(score),
+            })
+
+    return {
+        "batch_id": str(batch.id),
+        "case_id": str(batch.case_id),
+        "model_count": model_count,
+        "input_box_count": len(pred_anns),
+        "consensus_box_count": len(consensus_boxes),
+        "consensus_boxes": consensus_boxes,
+    }
 
 
 @router.get("/cases/{case_id}/batches", response_model=list[InferenceBatchResponse])

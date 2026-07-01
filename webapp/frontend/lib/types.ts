@@ -157,6 +157,40 @@ export interface TrainingStatsDto {
   class_distribution: Record<string, number>;
 }
 
+// ── Evaluation (Faz 6) ────────────────────────────────────────────────────
+export interface EvaluationModelDto {
+  id: string;
+  name: string;
+  architecture: string;
+  run_mode: string;
+  prediction_count: number;
+}
+
+export interface EvaluationPerClassMetrics {
+  precision: number;
+  recall: number;
+  f1: number;
+  tp: number;
+  fp: number;
+  fn: number;
+}
+
+export interface EvaluationModelDetail {
+  per_class?: Record<string, EvaluationPerClassMetrics>;
+  macro_f1?: number;
+  micro_f1?: number;
+  error?: string;
+}
+
+export interface EvaluationCompareResult {
+  snapshot_name: string;
+  gt_case_count: number;
+  gt_annotation_count: number;
+  iou_threshold: number;
+  comparison: Record<string, unknown>[];
+  detailed: Record<string, EvaluationModelDetail>;
+}
+
 // ── src/config.py SUPER_CLASSES ile birebir (plan Bölüm "Kritik dosyalar") ─
 export const LESION_CLASSES = [
   "acute_cholecystitis",
