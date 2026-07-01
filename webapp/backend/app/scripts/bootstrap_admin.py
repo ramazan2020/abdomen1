@@ -2,7 +2,10 @@
 bootstrap yolu gerekir). Kullanım:
 
     docker compose exec backend python -m app.scripts.bootstrap_admin \\
-        --email admin@example.com --password changeme --name "Yönetici"
+        --email admin@example.com --password Admin1234! --name "Yönetici"
+
+
+        
 """
 from __future__ import annotations
 

@@ -275,7 +275,7 @@ def main() -> None:
     )
     parser.add_argument("--api", default="http://localhost:8000/api/v1", help="Backend API kok URL")
     parser.add_argument("--email", default="doktor@example.com")
-    parser.add_argument("--password", default="doktor123")
+    parser.add_argument("--password", default="doktor1234!")
     parser.add_argument(
         "--manifest", type=Path, default=SPLIT_DIR / "manifest.csv",
         help=f"Manifest CSV yolu (varsayilan: {SPLIT_DIR / 'manifest.csv'})",

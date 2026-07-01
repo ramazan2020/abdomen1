@@ -99,7 +99,7 @@ def main() -> None:
     parser.add_argument("--zip", type=Path, default=DEFAULT_ZIP, help=f"Annotation ZIP yolu (varsayilan: {DEFAULT_ZIP})")
     parser.add_argument("--api", default="http://localhost:8000/api/v1")
     parser.add_argument("--email", default="doktor@example.com")
-    parser.add_argument("--password", default="doktor123")
+    parser.add_argument("--password", default="doktor1234!")
     parser.add_argument("--dry-run", action="store_true", help="API'ye gondermeden yazdirma modu")
     args = parser.parse_args()
 
