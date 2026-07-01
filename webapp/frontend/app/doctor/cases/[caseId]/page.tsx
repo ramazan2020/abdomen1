@@ -71,11 +71,17 @@ export default function CaseDetailPage({ params }: { params: { caseId: string } 
 
   return (
     <div style={{ display: "grid", gap: 16, maxWidth: 800 }}>
-      <Link href="/doctor" style={{ fontSize: 13 }}>← Vaka listesi</Link>
+      <nav className="breadcrumb">
+        <Link href="/doctor">Vaka Listesi</Link>
+        <span className="breadcrumb-sep">›</span>
+        <span style={{ color: "var(--text-2)" }}>{caseDetail.case_label ?? "(etiketsiz vaka)"}</span>
+      </nav>
 
       {/* Vaka özeti */}
       <section className="card">
-        <h2 style={{ marginTop: 0 }}>{caseDetail.case_label ?? "(etiketsiz vaka)"}</h2>
+        <h2 style={{ marginTop: 0, fontSize: 18, fontWeight: 800, color: "var(--text-1)", letterSpacing: "-0.2px" }}>
+          {caseDetail.case_label ?? "(etiketsiz vaka)"}
+        </h2>
         <p>
           Durum: <strong>{caseDetail.status}</strong> · Dilim: {caseDetail.n_slices ?? "-"} ·
           De-identifiye: {caseDetail.deidentified ? "evet" : "hayır"}

@@ -3,8 +3,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, ApiError } from "@/lib/api-client";
-import { getCurrentRole } from "@/lib/auth";
-import { RoleGuard } from "@/components/common/RoleGuard";
 import type { ModelVersionDto } from "@/lib/types";
 
 const ARCHITECTURE_LABELS: Record<string, string> = {
@@ -13,17 +11,11 @@ const ARCHITECTURE_LABELS: Record<string, string> = {
   organ_bag_transformer: "OrganBagTransformer", cls_timm: "Sınıflandırma (timm)",
 };
 
-const STATUS_STYLE: Record<string, React.CSSProperties> = {
-  active: { background: "#16a34a22", color: "#4ade80" },
-  inactive: { background: "#71717a22", color: "#a1a1aa" },
-  archived: { background: "#dc262622", color: "#f87171" },
+const STATUS_BADGE: Record<string, string> = {
+  active:   "badge badge-success",
+  inactive: "badge badge-neutral",
+  archived: "badge badge-danger",
 };
-
-function AdminGuard({ children }: { children: React.ReactNode }) {
-  const role = typeof window !== "undefined" ? getCurrentRole() : null;
-  if (role !== "admin") return <p style={{ padding: 24, color: "#f87171" }}>Bu sayfa sadece admin'e açıktır.</p>;
-  return <>{children}</>;
-}
 
 export default function AdminModelsPage() {
   const queryClient = useQueryClient();
@@ -71,16 +63,23 @@ export default function AdminModelsPage() {
   });
 
   return (
-    <RoleGuard>
-      <AdminGuard>
-        <div style={{ display: "grid", gap: 24, maxWidth: 900, padding: 24 }}>
-          <h1 style={{ margin: 0 }}>Model Registry</h1>
+        <div style={{ display: "grid", gap: 24, maxWidth: 900 }}>
+          <div className="page-header">
+            <h1 className="page-title">Model Registry</h1>
+            <p className="page-subtitle">Kayıtlı modelleri görüntüleyin, aktifleştirin ve yeni model ağırlıkları yükleyin.</p>
+          </div>
 
           {/* Model listesi */}
           <section className="card">
             <h2 style={{ marginTop: 0 }}>Kayıtlı modeller</h2>
             {isLoading && <p>Yükleniyor...</p>}
-            {models?.length === 0 && <p style={{ color: "#9aa0ab" }}>Henüz kayıtlı model yok.</p>}
+            {models?.length === 0 && (
+            <div className="empty-state">
+              <div className="empty-state-icon">🤖</div>
+              <div className="empty-state-title">Henüz kayıtlı model yok</div>
+              <div className="empty-state-sub">Aşağıdaki formdan ilk modelinizi kaydedin.</div>
+            </div>
+          )}
             {models && models.length > 0 && (
               <table>
                 <thead>
@@ -92,7 +91,7 @@ export default function AdminModelsPage() {
                       <td><strong>{m.name}</strong><br /><span style={{ fontSize: 11, color: "#9aa0ab" }}>{m.base_weights}</span></td>
                       <td>{ARCHITECTURE_LABELS[m.architecture] ?? m.architecture}</td>
                       <td><span className="badge" style={{ background: m.run_mode === "default" ? "#1d4ed822" : "#71717a22", color: m.run_mode === "default" ? "#93c5fd" : "#a1a1aa" }}>{m.run_mode}</span></td>
-                      <td><span className="badge" style={STATUS_STYLE[m.status] ?? {}}>{m.status}</span></td>
+                      <td><span className={STATUS_BADGE[m.status] ?? "badge badge-neutral"}>{m.status}</span></td>
                       <td style={{ fontSize: 12 }}>{m.outputs.map(o => o.output_type).join(", ")}</td>
                       <td>
                         <div style={{ display: "flex", gap: 6 }}>
@@ -162,7 +161,5 @@ export default function AdminModelsPage() {
             </form>
           </section>
         </div>
-      </AdminGuard>
-    </RoleGuard>
   );
 }

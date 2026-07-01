@@ -94,8 +94,15 @@ export default function DoctorWorklistPage() {
 
   return (
     <div style={{ display: "grid", gap: 24, maxWidth: 1000 }}>
+      <div className="page-header">
+        <h1 className="page-title">Vaka Listesi</h1>
+        <p className="page-subtitle">DICOM serisi yükleyin, annotasyon ZIP içe aktarın ve vakaları yönetin.</p>
+      </div>
+
       <section className="card">
-        <h2 style={{ marginTop: 0 }}>Yeni DICOM serisi yükle</h2>
+        <h2 style={{ marginTop: 0, marginBottom: 16, fontSize: 15, fontWeight: 700, color: "var(--text-1)" }}>
+          Yeni DICOM Serisi Yükle
+        </h2>
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -136,7 +143,9 @@ export default function DoctorWorklistPage() {
       </section>
 
       <section className="card">
-        <h2 style={{ marginTop: 0 }}>Annotasyon ZIP içe aktar</h2>
+        <h2 style={{ marginTop: 0, marginBottom: 16, fontSize: 15, fontWeight: 700, color: "var(--text-1)" }}>
+          Annotasyon ZIP İçe Aktar
+        </h2>
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -198,7 +207,7 @@ export default function DoctorWorklistPage() {
 
       <section className="card">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-          <h2 style={{ margin: 0 }}>Vaka listesi</h2>
+          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "var(--text-1)" }}>Vakalar</h2>
           <select
             value={reviewFilter}
             onChange={(e) => setReviewFilter(e.target.value)}
