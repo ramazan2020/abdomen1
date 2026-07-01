@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api-client";
-import { AnnotationZipImportResponse, CaseListItem } from "@/lib/types";
+import { AnnotationZipImportResponse, CaseListItem, DatasetDto } from "@/lib/types";
 
 const REVIEW_STATUS_LABELS: Record<string, string> = {
   unreviewed: "İncelenmedi",
@@ -24,15 +24,27 @@ const STATUS_LABELS: Record<string, string> = {
 export default function DoctorWorklistPage() {
   const queryClient = useQueryClient();
   const [reviewFilter, setReviewFilter] = useState<string>("");
+  const [datasetFilter, setDatasetFilter] = useState<string>("");
   const [file, setFile] = useState<File | null>(null);
   const [caseLabel, setCaseLabel] = useState("");
+  const [uploadDatasetId, setUploadDatasetId] = useState<string>("");
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  const { data: datasets = [] } = useQuery<DatasetDto[]>({
+    queryKey: ["datasets"],
+    queryFn: () => api.get<DatasetDto[]>("/datasets"),
+  });
+
   const { data: cases, isLoading } = useQuery({
-    queryKey: ["cases", reviewFilter],
-    queryFn: () =>
-      api.get<CaseListItem[]>(`/cases${reviewFilter ? `?review_status=${reviewFilter}` : ""}`),
+    queryKey: ["cases", reviewFilter, datasetFilter],
+    queryFn: () => {
+      const params = new URLSearchParams();
+      if (reviewFilter) params.set("review_status", reviewFilter);
+      if (datasetFilter) params.set("dataset_id", datasetFilter);
+      const qs = params.toString();
+      return api.get<CaseListItem[]>(`/cases${qs ? `?${qs}` : ""}`);
+    },
     refetchInterval: 5000, // ingest arka planda çalışırken status değişimini yakalamak için
   });
 
@@ -58,13 +70,16 @@ export default function DoctorWorklistPage() {
       const form = new FormData();
       form.append("file", file);
       if (caseLabel) form.append("case_label", caseLabel);
+      if (uploadDatasetId) form.append("dataset_id", uploadDatasetId);
       return api.postForm(`/cases/upload`, form);
     },
     onSuccess: () => {
       setFile(null);
       setCaseLabel("");
+      setUploadDatasetId("");
       setUploadError(null);
       queryClient.invalidateQueries({ queryKey: ["cases"] });
+      queryClient.invalidateQueries({ queryKey: ["datasets"] });
     },
     onError: (err: Error) => setUploadError(err.message),
   });
@@ -128,6 +143,16 @@ export default function DoctorWorklistPage() {
             onChange={(e) => setCaseLabel(e.target.value)}
             style={{ padding: 8, borderRadius: 6, border: "1px solid #3a3e48", background: "#0f1115", color: "#e6e6e6" }}
           />
+          <select
+            value={uploadDatasetId}
+            onChange={(e) => setUploadDatasetId(e.target.value)}
+            style={{ padding: 8, borderRadius: 6, border: "1px solid #3a3e48", background: "#0f1115", color: "#e6e6e6" }}
+          >
+            <option value="">Veri seti seç (opsiyonel)</option>
+            {datasets.map((ds) => (
+              <option key={ds.id} value={ds.id}>{ds.name}</option>
+            ))}
+          </select>
           <button type="submit" className="btn-primary" disabled={!file || uploadMutation.isPending}>
             {uploadMutation.isPending ? "Yükleniyor..." : "Yükle"}
           </button>
@@ -206,20 +231,32 @@ export default function DoctorWorklistPage() {
       </section>
 
       <section className="card">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
           <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "var(--text-1)" }}>Vakalar</h2>
-          <select
-            value={reviewFilter}
-            onChange={(e) => setReviewFilter(e.target.value)}
-            style={{ padding: 6, borderRadius: 6, background: "#0f1115", color: "#e6e6e6", border: "1px solid #3a3e48" }}
-          >
-            <option value="">Tüm review durumları</option>
-            {Object.entries(REVIEW_STATUS_LABELS).map(([k, v]) => (
-              <option key={k} value={k}>
-                {v}
-              </option>
-            ))}
-          </select>
+          <div style={{ display: "flex", gap: 8 }}>
+            <select
+              value={datasetFilter}
+              onChange={(e) => setDatasetFilter(e.target.value)}
+              style={{ padding: 6, borderRadius: 6, background: "#0f1115", color: "#e6e6e6", border: "1px solid #3a3e48" }}
+            >
+              <option value="">Tüm veri setleri</option>
+              {datasets.map((ds) => (
+                <option key={ds.id} value={ds.id}>{ds.name}</option>
+              ))}
+            </select>
+            <select
+              value={reviewFilter}
+              onChange={(e) => setReviewFilter(e.target.value)}
+              style={{ padding: 6, borderRadius: 6, background: "#0f1115", color: "#e6e6e6", border: "1px solid #3a3e48" }}
+            >
+              <option value="">Tüm review durumları</option>
+              {Object.entries(REVIEW_STATUS_LABELS).map(([k, v]) => (
+                <option key={k} value={k}>
+                  {v}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {isLoading && <p>Yükleniyor...</p>}

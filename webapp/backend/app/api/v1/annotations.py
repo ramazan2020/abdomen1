@@ -10,6 +10,7 @@ from app.db.session import get_db
 from app.schemas.annotations import (
     AnnotationCreateRequest,
     AnnotationResponse,
+    AnnotationTrainingPoolRequest,
     AnnotationUpdateRequest,
     AnnotationZipImportResponse,
 )
@@ -140,6 +141,23 @@ def accept(
     if ann.source != "prediction":
         raise HTTPException(status_code=422, detail="Sadece source='prediction' kabul edilebilir")
     return accept_prediction(db, prediction=ann, actor=user)
+
+
+@router.patch("/annotations/{annotation_id}/training-pool", response_model=AnnotationResponse)
+def toggle_training_pool(
+    annotation_id: uuid.UUID,
+    payload: AnnotationTrainingPoolRequest,
+    db: Session = Depends(get_db),
+    _user: User = Depends(require_doctor_or_admin),
+) -> Annotation:
+    ann = _get_annotation_or_404(db, annotation_id)
+    if ann.status != "active":
+        raise HTTPException(status_code=409, detail="Silinmiş annotasyon havuza eklenemez")
+    ann.included_in_training_pool = payload.in_pool
+    db.add(ann)
+    db.commit()
+    db.refresh(ann)
+    return ann
 
 
 @router.delete("/annotations/{annotation_id}", status_code=status.HTTP_204_NO_CONTENT)

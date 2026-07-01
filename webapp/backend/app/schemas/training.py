@@ -7,6 +7,7 @@ class CreateSnapshotRequest(BaseModel):
     snapshot_name: str
     description: str | None = None
     notes: str | None = None
+    dataset_id: str | None = None
 
 
 class SnapshotDto(BaseModel):

@@ -29,6 +29,10 @@ class ModelVersionResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class ModelRunModeRequest(BaseModel):
+    run_mode: str  # "default" | "comparison"
+
+
 class ModelOutputCreateRequest(BaseModel):
     output_type: str
     class_set: dict[str, Any] | list[Any] | None = None

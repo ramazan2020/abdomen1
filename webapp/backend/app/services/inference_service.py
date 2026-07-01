@@ -1,20 +1,23 @@
 """Mimari-bazlı inference sarmalayıcıları (plan Bölüm 4 tablosu).
 
-Faz 2 kapsamı: sadece YOLO det "hazır" (src.detection.predict_volume doğrudan
-kullanılabilir). Diğer mimariler (RF-DETR/D-FINE, nnU-Net, OrganBagTransformer,
-sınıflandırma) Faz 5'te eklenecek — şimdilik MLDependencyUnavailable fırlatır,
-job 'failed' olur, sunucu/worker çökmez (plan Bölüm 1 tasarım ilkesi).
+Faz 2: yolo_det — src.detection.predict_volume doğrudan kullanılabilir.
+Faz 5: yolo_seg, nnunet, cls_timm, organ_bag_transformer eklendi.
+RF-DETR / D-FINE / MedNeXt: src/ kodu olmadığından MLDependencyUnavailable
+  fırlatmaya devam eder, job 'failed' olur, sunucu/worker çökmez.
 """
 from __future__ import annotations
 
 import logging
+import tempfile
+from dataclasses import dataclass, field
+from pathlib import Path
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db.models import (
-    Annotation, AnnotationGroup, Case, InferenceBatch, InferenceRun,
-    ModelOutput, ModelVersion,
+    Annotation, AnnotationGroup, Case, ClassificationPrediction,
+    InferenceBatch, InferenceRun, ModelOutput, ModelVersion,
 )
 from app.db.session import SessionLocal
 from app.services.storage_service import get_storage_backend
@@ -24,12 +27,30 @@ logger = logging.getLogger(__name__)
 
 
 class MLDependencyUnavailable(RuntimeError):
-    """Mimari için gerekli ML kütüphanesi (torch/ultralytics) kurulu değil
-    veya o mimari için henüz sarmalayıcı yazılmadı. Job bunu yakalayıp
-    'failed' yapar — backend/worker süreci çökmez."""
+    """Mimari için gerekli ML kütüphanesi (torch/ultralytics/nnunet) kurulu
+    değil veya henüz sarmalayıcı yazılmadı. Job bunu yakalayıp 'failed' yapar —
+    backend/worker süreci çökmez."""
 
 
-def _predict_yolo_det(model_version: ModelVersion, case: Case, conf_threshold: float, min_slice_run: int):
+@dataclass
+class ArchitectureOutput:
+    """Her mimari handler'ın ortak dönüş tipi.
+
+    bbox_rows : [{"image_id": int, "class": int, "x1": f, "y1": f, "x2": f, "y2": f, "score": f}]
+    cls_rows  : [{"image_id": int|None, "class_id": int, "probability": float}]
+                 image_id=None → vaka-seviyesi tahmin
+    """
+    bbox_rows: list[dict] = field(default_factory=list)
+    cls_rows: list[dict] = field(default_factory=list)
+
+
+# ---------------------------------------------------------------------------
+# Mimari handler'ları
+# ---------------------------------------------------------------------------
+
+def _predict_yolo_det(
+    model_version: ModelVersion, case: Case, conf_threshold: float, min_slice_run: int
+) -> ArchitectureOutput:
     try:
         from src.detection import predict_volume
     except ImportError as exc:
@@ -40,29 +61,285 @@ def _predict_yolo_det(model_version: ModelVersion, case: Case, conf_threshold: f
     storage = get_storage_backend()
     weights_path = storage.local_path(model_version.weights_storage_key)
     case_dir = storage.local_path(case.storage_key)
-    return predict_volume(weights=weights_path, case_dir=case_dir, conf=conf_threshold, min_slice_run=min_slice_run)
+    df = predict_volume(weights=weights_path, case_dir=case_dir, conf=conf_threshold, min_slice_run=min_slice_run)
+    rows = df.to_dict("records") if df is not None and len(df) else []
+    return ArchitectureOutput(bbox_rows=rows, cls_rows=[])
 
 
-_ARCHITECTURE_HANDLERS = {
-    "yolo_det": _predict_yolo_det,
+def _predict_yolo_seg(
+    model_version: ModelVersion, case: Case, conf_threshold: float, min_slice_run: int
+) -> ArchitectureOutput:
+    """YOLO-seg: her DICOM dilimi için bbox çıkarır (segmentasyon maskesinden)."""
+    try:
+        import numpy as np
+        from ultralytics import YOLO
+        from src.dicom_utils import load_series, hu_to_three_channel
+        from src.config import DEFAULT_WINDOWS
+    except ImportError as exc:
+        raise MLDependencyUnavailable(
+            "ultralytics/torch bu ortamda kurulu değil (GPU sunucusu gerekir)"
+        ) from exc
+
+    storage = get_storage_backend()
+    weights_path = storage.local_path(model_version.weights_storage_key)
+    case_dir = storage.local_path(case.storage_key)
+
+    model = YOLO(str(weights_path))
+    series = load_series(case_dir)  # CTSeries: .hu (Z,Y,X), .image_ids
+
+    bbox_rows: list[dict] = []
+    for z, image_id in enumerate(series.image_ids):
+        hu_slice = series.hu[z]  # (Y, X)
+        img = (hu_to_three_channel(hu_slice, DEFAULT_WINDOWS) * 255).astype(np.uint8)
+        results = model.predict(img, conf=conf_threshold, verbose=False)
+        if not results or results[0].boxes is None:
+            continue
+        boxes = results[0].boxes
+        xyxy = boxes.xyxy.cpu().numpy()
+        cls = boxes.cls.cpu().numpy()
+        conf = boxes.conf.cpu().numpy()
+        for b, c, sc in zip(xyxy, cls, conf):
+            bbox_rows.append({
+                "image_id": image_id,
+                "class": int(c),
+                "x1": float(b[0]), "y1": float(b[1]),
+                "x2": float(b[2]), "y2": float(b[3]),
+                "score": float(sc),
+            })
+
+    return ArchitectureOutput(bbox_rows=bbox_rows, cls_rows=[])
+
+
+def _predict_nnunet(
+    model_version: ModelVersion, case: Case, conf_threshold: float, min_slice_run: int
+) -> ArchitectureOutput:
+    """nnU-Net: DICOM → NIfTI → nnUNetv2_predict (subprocess) → seg_to_bboxes."""
+    try:
+        from src.nnunet import NnUNetPipeline
+        from src.dicom_utils import DicomVolume
+    except ImportError as exc:
+        raise MLDependencyUnavailable(
+            "nnunet/SimpleITK bu ortamda kurulu değil (GPU sunucusu gerekir)"
+        ) from exc
+
+    storage = get_storage_backend()
+    nnunet_root = storage.local_path(model_version.weights_storage_key)
+    case_dir = storage.local_path(case.storage_key)
+
+    with tempfile.TemporaryDirectory(prefix="webapp_nnunet_") as tmpdir:
+        tmpdir = Path(tmpdir)
+        nifti_dir = tmpdir / "nifti"
+        input_dir = tmpdir / "input"
+        output_dir = tmpdir / "output"
+        nifti_dir.mkdir()
+        input_dir.mkdir()
+        output_dir.mkdir()
+
+        nifti_path = nifti_dir / "case_00001_0000.nii.gz"
+        DicomVolume(case_dir).to_nifti(nifti_path)
+
+        # nnUNet beklenen input dosya ismi
+        import shutil
+        shutil.copy2(nifti_path, input_dir / "case_00001_0000.nii.gz")
+
+        pipeline = NnUNetPipeline(fold=0, nifti_dir=nifti_dir, nnunet_root=nnunet_root)
+        pipeline.predict(input_dir, output_dir)
+        df = pipeline.seg_to_bboxes(output_dir)
+
+    if df is None or len(df) == 0:
+        return ArchitectureOutput(bbox_rows=[], cls_rows=[])
+
+    bbox_rows: list[dict] = [
+        {
+            "image_id": int(row["image_id"]),
+            "class": int(row["class"]),
+            "x1": float(row["x1"]),
+            "y1": float(row["y1"]),
+            "x2": float(row["x2"]),
+            "y2": float(row["y2"]),
+            "score": float(row.get("score", 1.0)),
+        }
+        for _, row in df.iterrows()
+    ]
+    return ArchitectureOutput(bbox_rows=bbox_rows, cls_rows=[])
+
+
+def _predict_cls_timm(
+    model_version: ModelVersion, case: Case, conf_threshold: float, min_slice_run: int
+) -> ArchitectureOutput:
+    """cls_timm: dilim-düzeyi + vaka-düzeyi çok-etiket sınıflandırma."""
+    try:
+        import numpy as np
+        import torch
+        import torch.nn.functional as F
+        from src.train_cls import build_model
+        from src.config import DEFAULT_CLS, DEFAULT_WINDOWS
+        from src.dicom_utils import load_series, hu_to_three_channel
+    except ImportError as exc:
+        raise MLDependencyUnavailable(
+            "timm/torch bu ortamda kurulu değil (GPU sunucusu gerekir)"
+        ) from exc
+
+    storage = get_storage_backend()
+    weights_path = storage.local_path(model_version.weights_storage_key)
+    case_dir = storage.local_path(case.storage_key)
+
+    model = build_model(DEFAULT_CLS)
+    state = torch.load(str(weights_path), map_location="cpu")
+    model.load_state_dict(state.get("model_state_dict", state))
+    model.eval()
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = model.to(device)
+
+    series = load_series(case_dir)
+    D = len(series.image_ids)
+    input_sz = DEFAULT_CLS.input_size  # 384
+
+    cls_rows: list[dict] = []
+    all_probs: list[np.ndarray] = []
+
+    with torch.no_grad():
+        for z, image_id in enumerate(series.image_ids):
+            hu_slice = series.hu[z]
+            img = hu_to_three_channel(hu_slice, DEFAULT_WINDOWS)  # (H, W, 3) float32 [0,1]
+            x = torch.from_numpy(img).permute(2, 0, 1).unsqueeze(0).to(device)  # (1, 3, H, W)
+            x = F.interpolate(x, size=(input_sz, input_sz), mode="bilinear", align_corners=False)
+            logits = model(x).squeeze(0)  # (num_classes,)
+            probs = torch.sigmoid(logits).cpu().numpy()
+            all_probs.append(probs)
+            for class_id, prob in enumerate(probs):
+                cls_rows.append({"image_id": image_id, "class_id": class_id, "probability": float(prob)})
+
+    # Vaka-düzeyi: ortalama olasılık
+    if all_probs:
+        avg_probs = np.mean(all_probs, axis=0)
+        for class_id, prob in enumerate(avg_probs):
+            cls_rows.append({"image_id": None, "class_id": class_id, "probability": float(prob)})
+
+    return ArchitectureOutput(bbox_rows=[], cls_rows=cls_rows)
+
+
+def _predict_organ_bag_transformer(
+    model_version: ModelVersion, case: Case, conf_threshold: float, min_slice_run: int
+) -> ArchitectureOutput:
+    """OBT: çok-görevli — FCOS bbox (dilim-düzeyi) + hasta-düzeyi sınıflandırma."""
+    try:
+        import numpy as np
+        import torch
+        from src.organ_bag_transformer import (
+            OrganBagTransformer, OBTConfig, ANATOMICAL_DEFAULT_Z_FRACS,
+            decode_fcos_output, N_CLASSES,
+        )
+        from src.config import DEFAULT_WINDOWS
+        from src.dicom_utils import load_series, hu_to_three_channel
+    except ImportError as exc:
+        raise MLDependencyUnavailable(
+            "timm/torch bu ortamda kurulu değil (GPU sunucusu gerekir)"
+        ) from exc
+
+    storage = get_storage_backend()
+    weights_path = storage.local_path(model_version.weights_storage_key)
+    case_dir = storage.local_path(case.storage_key)
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    cfg = OBTConfig(encoder_pretrained=False)  # ağırlıkları checkpoint'ten yükleyeceğiz
+    model = OrganBagTransformer(cfg).to(device)
+    state = torch.load(str(weights_path), map_location="cpu")
+    model.load_state_dict(state.get("model_state_dict", state))
+    model.eval()
+
+    series = load_series(case_dir)
+    D = len(series.image_ids)
+
+    # Tüm dilimleri (3, H, W) numpy array olarak hazırla
+    imgs = np.stack([
+        hu_to_three_channel(series.hu[z], DEFAULT_WINDOWS).transpose(2, 0, 1)
+        for z in range(D)
+    ])  # (D, 3, H, W) float32 [0, 1]
+
+    BATCH = 8
+
+    # 1) Tüm dilimleri encode et → slice_features (D, d_model, H', W')
+    all_features: list[torch.Tensor] = []
+    with torch.no_grad():
+        for start in range(0, D, BATCH):
+            batch = torch.from_numpy(imgs[start:start + BATCH]).to(device)
+            feats = model.encode_slices(batch)  # (B, d_model, H', W')
+            all_features.append(feats)
+    slice_features = torch.cat(all_features, dim=0)  # (D, d_model, H', W')
+
+    # 2) z_ranges: anatomik varsayılan fraksiyonlardan
+    z_ranges = {
+        organ_idx: (int(frac_s * D), min(int(frac_e * D), D - 1))
+        for organ_idx, (frac_s, frac_e) in ANATOMICAL_DEFAULT_Z_FRACS.items()
+    }
+
+    # 3) case_forward → enriched_tokens + patient_logits (sınıflandırma)
+    with torch.no_grad():
+        enriched, _attn, patient_logits = model.case_forward(slice_features, z_ranges)
+        patient_probs = patient_logits.sigmoid().cpu().numpy()
+
+    cls_rows: list[dict] = [
+        {"image_id": None, "class_id": c, "probability": float(patient_probs[c])}
+        for c in range(N_CLASSES)
+    ]
+
+    # 4) fcos_forward → dilim-düzeyi bbox
+    bbox_rows: list[dict] = []
+    with torch.no_grad():
+        for start in range(0, D, BATCH):
+            end = min(start + BATCH, D)
+            batch = torch.from_numpy(imgs[start:end]).to(device)
+            cls_logits, reg_ltrb, centerness = model.fcos_forward(batch, enriched)
+            for bi in range(end - start):
+                image_id = series.image_ids[start + bi]
+                detections = decode_fcos_output(
+                    cls_logits[bi:bi + 1], reg_ltrb[bi:bi + 1], centerness[bi:bi + 1],
+                    score_thr=conf_threshold,
+                )
+                for det in detections:
+                    bbox_rows.append({
+                        "image_id": image_id,
+                        "class": det["class"],
+                        "x1": det["box"][0], "y1": det["box"][1],
+                        "x2": det["box"][2], "y2": det["box"][3],
+                        "score": det["score"],
+                    })
+
+    return ArchitectureOutput(bbox_rows=bbox_rows, cls_rows=cls_rows)
+
+
+# ---------------------------------------------------------------------------
+# Handler tablosu
+# ---------------------------------------------------------------------------
+
+_ARCHITECTURE_HANDLERS: dict[str, object] = {
+    "yolo_det":               _predict_yolo_det,
+    "yolo_seg":               _predict_yolo_seg,
+    "nnunet":                 _predict_nnunet,
+    "cls_timm":               _predict_cls_timm,
+    "organ_bag_transformer":  _predict_organ_bag_transformer,
 }
 
 
-def run_architecture_inference(model_version: ModelVersion, case: Case, conf_threshold: float, min_slice_run: int):
-    """Mimariye göre uygun `src/` fonksiyonunu çağırır. Dönüş: pandas.DataFrame
-    (case, image_id, class, x1, y1, x2, y2, score) — `src.evaluation` ile aynı şema."""
+def run_architecture_inference(
+    model_version: ModelVersion, case: Case, conf_threshold: float, min_slice_run: int
+) -> ArchitectureOutput:
+    """Mimariye göre uygun handler'ı çağırır ve ArchitectureOutput döner."""
     handler = _ARCHITECTURE_HANDLERS.get(model_version.architecture)
     if handler is None:
         raise MLDependencyUnavailable(
             f"'{model_version.architecture}' mimarisi için inference sarmalayıcısı henüz yazılmadı "
-            "(plan Bölüm 4 tablosu — Faz 5 kapsamı)"
+            "(plan Bölüm 4 tablosu)"
         )
     return handler(model_version, case, conf_threshold, min_slice_run)
 
 
 # ---------------------------------------------------------------------------
-# Tahmin sonuçlarını annotations + annotation_groups olarak yaz
+# Tahmin yazma yardımcıları
 # ---------------------------------------------------------------------------
+
 def _iou(a: tuple[float, float, float, float], b: tuple[float, float, float, float]) -> float:
     ix1, iy1 = max(a[0], b[0]), max(a[1], b[1])
     ix2, iy2 = min(a[2], b[2]), min(a[3], b[3])
@@ -82,9 +359,9 @@ def write_predictions_and_group(
     rows: list[dict],
     iou_threshold: float = 0.3,
 ) -> int:
-    """`predict_volume` çıktısını annotations'a yazar, ardışık dilim +
-    örtüşen bbox'ları (plan Bölüm 2 "2D/3D ayrımı") annotation_groups altında
-    toplar. `rows`: [{"image_id":, "class":, "x1":, "y1":, "x2":, "y2":, "score":}, ...]
+    """`bbox_rows`'ı annotations + annotation_groups olarak yazar.
+
+    rows: [{"image_id": int, "class": int, "x1":, "y1":, "x2":, "y2":, "score":}]
     image_id'ye göre sıralı olmalı."""
     rows = sorted(rows, key=lambda r: (int(r["class"]), int(r["image_id"])))
     created = 0
@@ -139,13 +416,37 @@ def write_predictions_and_group(
     return created
 
 
+def write_classification_predictions(
+    db: Session,
+    *,
+    case_id,
+    model_output: ModelOutput,
+    cls_rows: list[dict],
+) -> int:
+    """cls_rows → classification_predictions tablosuna yazar.
+
+    cls_rows: [{"image_id": int|None, "class_id": int, "probability": float}]
+    image_id=None → vaka-seviyesi tahmin."""
+    created = 0
+    for row in cls_rows:
+        db.add(ClassificationPrediction(
+            case_id=case_id,
+            image_id=row.get("image_id"),
+            model_output_id=model_output.id,
+            class_id=row["class_id"],
+            probability=row["probability"],
+        ))
+        created += 1
+    return created
+
+
 def _update_batch_status(db: Session, batch_id) -> None:
     batch = db.get(InferenceBatch, batch_id)
     if batch is None:
         return
     runs = db.execute(select(InferenceRun).where(InferenceRun.batch_id == batch_id)).scalars().all()
     if any(r.status in ("queued", "running") for r in runs):
-        return  # henüz bitmedi
+        return
     statuses = {r.status for r in runs}
     if statuses == {"succeeded"}:
         batch.status = "succeeded"
@@ -158,9 +459,9 @@ def _update_batch_status(db: Session, batch_id) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Batch oluşturma (API router ve dicom_ingest.py'nin otomatik tetiklemesi
-# tarafından ortak kullanılır — plan Bölüm 4 "iki modlu inference")
+# Batch oluşturma (API router + dicom_ingest.py otomatik tetiklemesi)
 # ---------------------------------------------------------------------------
+
 def create_inference_batch(
     db: Session, *, case: Case, batch_type: str, model_versions: list[ModelVersion], actor_id
 ) -> InferenceBatch | None:
@@ -188,10 +489,8 @@ def create_inference_batch(
 
 
 def trigger_default_inference(db: Session, *, case: Case, actor_id) -> InferenceBatch | None:
-    """Case `ready` olunca otomatik çağrılır (plan Bölüm 4: `run-default` —
-    ek tıklama gerekmez). Aktif `run_mode='default'` model yoksa sessizce
-    None döner; bu normal bir durumdur (henüz hiç model registry'ye
-    eklenmemiş/aktifleştirilmemiş olabilir)."""
+    """Case `ready` olunca otomatik çağrılır. Aktif `run_mode='default'` model
+    yoksa sessizce None döner."""
     model_versions = list(
         db.execute(
             select(ModelVersion).where(ModelVersion.run_mode == "default", ModelVersion.status == "active")
@@ -203,6 +502,7 @@ def trigger_default_inference(db: Session, *, case: Case, actor_id) -> Inference
 # ---------------------------------------------------------------------------
 # RQ job giriş noktası
 # ---------------------------------------------------------------------------
+
 def run_inference_job(inference_run_id: str) -> None:
     db = SessionLocal()
     try:
@@ -219,27 +519,44 @@ def run_inference_job(inference_run_id: str) -> None:
         model_version = db.get(ModelVersion, run.model_version_id)
 
         try:
-            df = run_architecture_inference(
+            output = run_architecture_inference(
                 model_version, case, float(run.conf_threshold), int(run.min_slice_run)
             )
-            rows = df.to_dict("records") if df is not None and len(df) else []
 
-            bbox_output = next((o for o in model_version.outputs if o.output_type == "bbox"), None)
-            if bbox_output is None:
-                raise MLDependencyUnavailable(
-                    f"Model '{model_version.name}' için 'bbox' tipinde bir model_output tanımlı değil"
+            if output.bbox_rows:
+                bbox_output = next(
+                    (o for o in model_version.outputs if o.output_type == "bbox"), None
+                )
+                if bbox_output is None:
+                    raise MLDependencyUnavailable(
+                        f"Model '{model_version.name}' için 'bbox' tipinde model_output tanımlı değil"
+                    )
+                write_predictions_and_group(
+                    db, case_id=case.id, model_output=bbox_output, rows=output.bbox_rows
                 )
 
-            write_predictions_and_group(db, case_id=case.id, model_output=bbox_output, rows=rows)
+            if output.cls_rows:
+                cls_output = next(
+                    (o for o in model_version.outputs if o.output_type == "classification"), None
+                )
+                if cls_output is None:
+                    raise MLDependencyUnavailable(
+                        f"Model '{model_version.name}' için 'classification' tipinde model_output tanımlı değil"
+                    )
+                write_classification_predictions(
+                    db, case_id=case.id, model_output=cls_output, cls_rows=output.cls_rows
+                )
+
             run.status = "succeeded"
             db.add(run)
             db.commit()
+
         except MLDependencyUnavailable as exc:
             run.status = "failed"
             run.error_message = str(exc)
             db.add(run)
             db.commit()
-        except Exception as exc:  # noqa: BLE001 — job'ı düzgünce 'failed' yapmak için geniş yakalama
+        except Exception as exc:  # noqa: BLE001
             logger.exception("run_inference_job hata: run=%s", inference_run_id)
             run.status = "failed"
             run.error_message = str(exc)[:1000]

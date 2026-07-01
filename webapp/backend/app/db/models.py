@@ -57,6 +57,18 @@ class Patient(Base):
     created_at: Mapped[datetime] = _created_at()
 
 
+class Dataset(Base):
+    __tablename__ = "datasets"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    name: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    description: Mapped[str | None] = mapped_column(Text)
+    source: Mapped[str] = mapped_column(String(50), nullable=False, default="webapp")
+    notes: Mapped[str | None] = mapped_column(Text)
+    created_by: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    created_at: Mapped[datetime] = _created_at()
+
+
 class Case(Base):
     __tablename__ = "cases"
     __table_args__ = (
@@ -72,6 +84,9 @@ class Case(Base):
     id: Mapped[uuid.UUID] = _uuid_pk()
     patient_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("patients.id"), nullable=True
+    )
+    dataset_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("datasets.id", ondelete="SET NULL"), nullable=True, index=True
     )
     case_label: Mapped[str | None] = mapped_column(String(255))
     uploaded_by: Mapped[uuid.UUID] = mapped_column(

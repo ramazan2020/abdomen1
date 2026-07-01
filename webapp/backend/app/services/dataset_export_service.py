@@ -25,15 +25,18 @@ def build_snapshot(
     description: str | None,
     notes: str | None,
     actor_id: uuid.UUID,
+    dataset_id: uuid.UUID | None = None,
 ) -> DatasetSnapshot:
     """
     approved_for_training case'lerinden ve eğitim havuzundaki annotasyonlardan
     JSON manifest oluşturur, storage'a kaydeder, DatasetSnapshot satırı döner.
+    dataset_id verilirse sadece o veri setine ait case'ler dahil edilir.
     """
     # 1. Onaylı case'leri bul
-    approved_cases = db.execute(
-        select(Case).where(Case.review_status == "approved_for_training")
-    ).scalars().all()
+    stmt = select(Case).where(Case.review_status == "approved_for_training")
+    if dataset_id is not None:
+        stmt = stmt.where(Case.dataset_id == dataset_id)
+    approved_cases = db.execute(stmt).scalars().all()
 
     if not approved_cases:
         logger.warning("Snapshot için approved_for_training case bulunamadı.")

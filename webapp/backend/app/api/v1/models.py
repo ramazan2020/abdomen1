@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.core.deps import require_admin
 from app.db.models import ModelOutput, ModelVersion, User
 from app.db.session import get_db
-from app.schemas.models import ModelOutputCreateRequest, ModelVersionResponse
+from app.schemas.models import ModelOutputCreateRequest, ModelRunModeRequest, ModelVersionResponse
 from app.services.storage_service import get_storage_backend
 
 router = APIRouter(prefix="/models", tags=["models"])
@@ -135,6 +135,22 @@ def activate_model(model_id: uuid.UUID, db: Session = Depends(get_db), _admin: U
 def deactivate_model(model_id: uuid.UUID, db: Session = Depends(get_db), _admin: User = Depends(require_admin)) -> ModelVersion:
     model = _get_model_or_404(db, model_id)
     model.status = "inactive"
+    db.add(model)
+    db.commit()
+    return _get_model_or_404(db, model_id)
+
+
+@router.patch("/{model_id}/run-mode", response_model=ModelVersionResponse)
+def update_run_mode(
+    model_id: uuid.UUID,
+    payload: ModelRunModeRequest,
+    db: Session = Depends(get_db),
+    _admin: User = Depends(require_admin),
+) -> ModelVersion:
+    if payload.run_mode not in ("default", "comparison"):
+        raise HTTPException(status_code=422, detail="run_mode 'default' veya 'comparison' olmalı")
+    model = _get_model_or_404(db, model_id)
+    model.run_mode = payload.run_mode
     db.add(model)
     db.commit()
     return _get_model_or_404(db, model_id)

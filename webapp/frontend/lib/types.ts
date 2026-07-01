@@ -41,9 +41,21 @@ export interface InferenceBatchDto {
   runs: InferenceRunDto[];
 }
 
+// ── Dataset (Faz 4b) ──────────────────────────────────────────────────────
+export interface DatasetDto {
+  id: string;
+  name: string;
+  description: string | null;
+  source: string;
+  notes: string | null;
+  case_count: number;
+  created_at: string;
+}
+
 // ── Case list/detail ───────────────────────────────────────────────────────
 export interface CaseListItem {
   id: string;
+  dataset_id: string | null;
   case_label: string | null;
   status: "uploaded" | "validating" | "ready" | "failed";
   review_status: "unreviewed" | "in_review" | "reviewed" | "approved_for_training" | "excluded";
@@ -137,6 +149,12 @@ export interface TrainingJobDto {
   heartbeat_at: string | null;
   result_model_version_id: string | null;
   created_at: string;
+}
+
+export interface TrainingStatsDto {
+  review_status_counts: Record<string, number>;
+  pool_annotation_count: number;
+  class_distribution: Record<string, number>;
 }
 
 // ── src/config.py SUPER_CLASSES ile birebir (plan Bölüm "Kritik dosyalar") ─

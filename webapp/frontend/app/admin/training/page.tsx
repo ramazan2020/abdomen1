@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api-client";
-import type { SnapshotDto, TrainingJobDto } from "@/lib/types";
+import type { CaseListItem, DatasetDto, ModelVersionDto, SnapshotDto, TrainingJobDto, TrainingStatsDto } from "@/lib/types";
+import { LESION_CLASS_LABELS_TR } from "@/lib/types";
 
 const ARCH_LABELS: Record<string, string> = {
   yolo_det: "YOLO Detection",
@@ -16,6 +17,22 @@ const STATUS_BADGE: Record<string, string> = {
   succeeded: "badge badge-success",
   failed:    "badge badge-danger",
   cancelled: "badge badge-warning",
+};
+
+const REVIEW_LABEL: Record<string, string> = {
+  unreviewed:            "İncelenmedi",
+  in_review:             "İnceleniyor",
+  reviewed:              "İncelendi",
+  approved_for_training: "Onaylı",
+  excluded:              "Dışlandı",
+};
+
+const REVIEW_BADGE: Record<string, string> = {
+  unreviewed:            "badge badge-neutral",
+  in_review:             "badge badge-accent",
+  reviewed:              "badge badge-warning",
+  approved_for_training: "badge badge-success",
+  excluded:              "badge badge-danger",
 };
 
 const DEFAULT_PARAMS = {
@@ -33,6 +50,7 @@ export default function TrainingPage() {
   const [snapName, setSnapName] = useState("");
   const [snapDesc, setSnapDesc] = useState("");
   const [snapNotes, setSnapNotes] = useState("");
+  const [snapDatasetId, setSnapDatasetId] = useState<string>("");
   const [snapError, setSnapError] = useState<string | null>(null);
 
   // ── Job form ──────────────────────────────────────────────────────────────
@@ -41,10 +59,29 @@ export default function TrainingPage() {
   const [paramsJson, setParamsJson] = useState(JSON.stringify(DEFAULT_PARAMS, null, 2));
   const [jobError, setJobError] = useState<string | null>(null);
 
-  // ── Log viewer ────────────────────────────────────────────────────────────
+  // ── Log + activation ──────────────────────────────────────────────────────
   const [viewLogId, setViewLogId] = useState<string | null>(null);
+  const [activatingJobId, setActivatingJobId] = useState<string | null>(null);
+  const [activateRunMode, setActivateRunMode] = useState<"default" | "comparison">("comparison");
 
   // ── Queries ───────────────────────────────────────────────────────────────
+  const { data: stats } = useQuery({
+    queryKey: ["training-stats"],
+    queryFn: () => api.get<TrainingStatsDto>("/training/stats"),
+    refetchInterval: 30_000,
+  });
+
+  const { data: datasets = [] } = useQuery<DatasetDto[]>({
+    queryKey: ["datasets"],
+    queryFn: () => api.get<DatasetDto[]>("/datasets"),
+  });
+
+  const { data: reviewedCases } = useQuery({
+    queryKey: ["cases-reviewed"],
+    queryFn: () => api.get<CaseListItem[]>("/cases?review_status=reviewed"),
+    refetchInterval: 20_000,
+  });
+
   const { data: snapshots } = useQuery({
     queryKey: ["training-snapshots"],
     queryFn: () => api.get<SnapshotDto[]>("/training/snapshots"),
@@ -70,14 +107,33 @@ export default function TrainingPage() {
   });
 
   // ── Mutations ─────────────────────────────────────────────────────────────
+  const approveMutation = useMutation({
+    mutationFn: (caseId: string) =>
+      api.patch(`/cases/${caseId}/review-status`, { review_status: "approved_for_training" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cases-reviewed"] });
+      queryClient.invalidateQueries({ queryKey: ["training-stats"] });
+    },
+  });
+
+  const excludeMutation = useMutation({
+    mutationFn: (caseId: string) =>
+      api.patch(`/cases/${caseId}/review-status`, { review_status: "excluded" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cases-reviewed"] });
+      queryClient.invalidateQueries({ queryKey: ["training-stats"] });
+    },
+  });
+
   const createSnapMutation = useMutation({
     mutationFn: () => api.post<SnapshotDto>("/training/snapshots", {
       snapshot_name: snapName,
       description: snapDesc || null,
       notes: snapNotes || null,
+      dataset_id: snapDatasetId || null,
     }),
     onSuccess: (snap) => {
-      setSnapName(""); setSnapDesc(""); setSnapNotes(""); setSnapError(null);
+      setSnapName(""); setSnapDesc(""); setSnapNotes(""); setSnapDatasetId(""); setSnapError(null);
       setSelSnapId(snap.id);
       queryClient.invalidateQueries({ queryKey: ["training-snapshots"] });
     },
@@ -108,14 +164,123 @@ export default function TrainingPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["training-jobs"] }),
   });
 
+  const activateMutation = useMutation({
+    mutationFn: async (modelId: string) => {
+      await api.patch(`/models/${modelId}/run-mode`, { run_mode: activateRunMode });
+      return api.post<ModelVersionDto>(`/models/${modelId}/activate`);
+    },
+    onSuccess: () => {
+      setActivatingJobId(null);
+      queryClient.invalidateQueries({ queryKey: ["training-jobs"] });
+    },
+  });
+
   const activeJob = jobs?.find(j => j.id === viewLogId) ?? null;
+  const activatingJob = jobs?.find(j => j.id === activatingJobId) ?? null;
+
+  const approvedCount = stats?.review_status_counts?.approved_for_training ?? 0;
+  const reviewedCount = stats?.review_status_counts?.reviewed ?? 0;
 
   return (
-    <div style={{ display: "grid", gap: 24, maxWidth: 1000 }}>
+    <div style={{ display: "grid", gap: 24, maxWidth: 1100 }}>
       <div className="page-header">
         <h1 className="page-title">Eğitim Yönetimi</h1>
-        <p className="page-subtitle">Dataset snapshot oluşturun ve model eğitimi başlatın.</p>
+        <p className="page-subtitle">Vaka QA, dataset snapshot ve model eğitimi.</p>
       </div>
+
+      {/* ── Havuz istatistikleri ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
+        {[
+          { label: "Onaylı Vaka",       value: approvedCount,                       color: "var(--success)" },
+          { label: "QA Bekleyen",        value: reviewedCount,                       color: "var(--warning)" },
+          { label: "Havuz Annotasyon",   value: stats?.pool_annotation_count ?? 0,   color: "var(--accent)" },
+          { label: "Toplam Vaka",        value: Object.values(stats?.review_status_counts ?? {}).reduce((a, b) => a + b, 0), color: "var(--text-2)" },
+        ].map(({ label, value, color }) => (
+          <div key={label} className="stat-card">
+            <div className="stat-label">{label}</div>
+            <div className="stat-value" style={{ color }}>{value}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── QA bekleyen vakalar ── */}
+      {(reviewedCases && reviewedCases.length > 0) && (
+        <section className="card">
+          <h2 style={{ marginTop: 0, marginBottom: 12, fontSize: 15, fontWeight: 700, color: "var(--text-1)" }}>
+            QA Bekleyen Vakalar
+            <span className="badge badge-warning" style={{ marginLeft: 8 }}>{reviewedCases.length}</span>
+          </h2>
+          <p style={{ fontSize: 12, color: "var(--text-3)", marginBottom: 12 }}>
+            Doktorlar tarafından <strong>reviewed</strong> olarak işaretlendi, eğitime dahil/hariç tutulması için onayınız bekleniyor.
+          </p>
+          <table>
+            <thead>
+              <tr>
+                <th>Vaka Etiketi</th>
+                <th>Durum</th>
+                <th>Dilim Sayısı</th>
+                <th>Yüklenme Tarihi</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {reviewedCases.map(c => (
+                <tr key={c.id}>
+                  <td style={{ fontWeight: 600, color: "var(--text-1)" }}>{c.case_label ?? c.id.slice(0, 8)}</td>
+                  <td><span className={REVIEW_BADGE[c.review_status]}>{REVIEW_LABEL[c.review_status]}</span></td>
+                  <td style={{ color: "var(--text-3)" }}>{c.n_slices ?? "—"}</td>
+                  <td style={{ fontSize: 11, color: "var(--text-3)" }}>
+                    {new Date(c.created_at).toLocaleDateString("tr-TR")}
+                  </td>
+                  <td>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <button
+                        className="btn btn-sm btn-primary"
+                        disabled={approveMutation.isPending}
+                        onClick={() => approveMutation.mutate(c.id)}
+                      >
+                        Onayla
+                      </button>
+                      <button
+                        className="btn btn-sm btn-danger"
+                        disabled={excludeMutation.isPending}
+                        onClick={() => excludeMutation.mutate(c.id)}
+                      >
+                        Hariç tut
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
+
+      {/* ── Sınıf dağılımı ── */}
+      {stats && Object.keys(stats.class_distribution).length > 0 && (
+        <section className="card">
+          <h2 style={{ marginTop: 0, marginBottom: 12, fontSize: 15, fontWeight: 700, color: "var(--text-1)" }}>
+            Eğitim Havuzu — Sınıf Dağılımı
+          </h2>
+          <div style={{ display: "grid", gap: 8 }}>
+            {LESION_CLASS_LABELS_TR.map((label, idx) => {
+              const count = stats.class_distribution[String(idx)] ?? 0;
+              const total = stats.pool_annotation_count || 1;
+              const pct = Math.round((count / total) * 100);
+              return (
+                <div key={idx} style={{ display: "grid", gridTemplateColumns: "180px 1fr 40px", gap: 10, alignItems: "center" }}>
+                  <span style={{ fontSize: 12, color: "var(--text-2)" }}>{label}</span>
+                  <div className="progress-bar">
+                    <div className="progress-fill" style={{ width: `${pct}%` }} />
+                  </div>
+                  <span style={{ fontSize: 12, color: "var(--text-3)", textAlign: "right" }}>{count}</span>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, alignItems: "start" }}>
         {/* ── Dataset Snapshot ── */}
@@ -123,6 +288,11 @@ export default function TrainingPage() {
           <h2 style={{ marginTop: 0, marginBottom: 16, fontSize: 15, fontWeight: 700, color: "var(--text-1)" }}>
             Dataset Snapshot Oluştur
           </h2>
+          {approvedCount === 0 && (
+            <div className="alert alert-warning" style={{ marginBottom: 12 }}>
+              Henüz <strong>approved_for_training</strong> vakası yok. Yukarıdaki QA bölümünden vakalar onaylandıktan sonra snapshot oluşturun.
+            </div>
+          )}
           <div style={{ display: "grid", gap: 12 }}>
             <div className="form-group">
               <label className="form-label">Snapshot adı *</label>
@@ -146,16 +316,29 @@ export default function TrainingPage() {
               <label className="form-label">Notlar</label>
               <textarea
                 className="form-input"
-                rows={3}
+                rows={2}
                 value={snapNotes}
                 onChange={e => setSnapNotes(e.target.value)}
                 placeholder="Serbest metin notlar..."
                 style={{ resize: "vertical" }}
               />
               <span className="form-hint">
-                Yalnızca <strong>approved_for_training</strong> statüsündeki vakalar ve
-                eğitim havuzundaki annotasyonlar dahil edilir.
+                Yalnızca <strong>approved_for_training</strong> vakalar ve havuzdaki annotasyonlar dahil edilir.
               </span>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Veri seti filtresi (opsiyonel)</label>
+              <select
+                className="form-input"
+                value={snapDatasetId}
+                onChange={e => setSnapDatasetId(e.target.value)}
+              >
+                <option value="">Tüm veri setleri</option>
+                {datasets.map(ds => (
+                  <option key={ds.id} value={ds.id}>{ds.name}</option>
+                ))}
+              </select>
+              <span className="form-hint">Seçilirse yalnızca bu veri setine ait onaylı vakalar dahil edilir.</span>
             </div>
             {snapError && <div className="alert alert-danger">{snapError}</div>}
             <button
@@ -170,7 +353,6 @@ export default function TrainingPage() {
             </button>
           </div>
 
-          {/* Snapshot listesi */}
           {snapshots && snapshots.length > 0 && (
             <div style={{ marginTop: 20 }}>
               <div className="divider" />
@@ -313,7 +495,7 @@ export default function TrainingPage() {
                       {job.error_message && (
                         <div style={{ fontSize: 11, color: "var(--danger)", marginTop: 4, maxWidth: 200 }}
                              title={job.error_message}>
-                          {job.error_message.slice(0, 60)}…
+                          {job.error_message.slice(0, 60)}{job.error_message.length > 60 ? "…" : ""}
                         </div>
                       )}
                     </td>
@@ -339,18 +521,28 @@ export default function TrainingPage() {
                       {durationMin != null ? `${durationMin}dk` : job.status === "running" ? "devam ediyor" : "—"}
                     </td>
                     <td onClick={e => e.stopPropagation()}>
-                      {(job.status === "queued" || job.status === "running") && (
-                        <button
-                          className="btn btn-sm btn-danger"
-                          onClick={() => cancelMutation.mutate(job.id)}
-                          disabled={cancelMutation.isPending}
-                        >
-                          İptal
-                        </button>
-                      )}
-                      {job.result_model_version_id && (
-                        <span className="tag" style={{ fontSize: 11 }}>✓ Model kaydedildi</span>
-                      )}
+                      <div style={{ display: "flex", gap: 4, flexDirection: "column" }}>
+                        {(job.status === "queued" || job.status === "running") && (
+                          <button
+                            className="btn btn-sm btn-danger"
+                            onClick={() => cancelMutation.mutate(job.id)}
+                            disabled={cancelMutation.isPending}
+                          >
+                            İptal
+                          </button>
+                        )}
+                        {job.status === "succeeded" && job.result_model_version_id && (
+                          <button
+                            className="btn btn-sm btn-primary"
+                            onClick={() => {
+                              setActivatingJobId(job.id);
+                              setActivateRunMode("comparison");
+                            }}
+                          >
+                            Aktifleştir
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -359,6 +551,49 @@ export default function TrainingPage() {
           </table>
         )}
       </section>
+
+      {/* ── Model aktivasyon modalı ── */}
+      {activatingJob?.result_model_version_id && (
+        <section className="card" style={{ border: "1px solid var(--accent-border)", background: "var(--accent-muted)" }}>
+          <h2 style={{ marginTop: 0, marginBottom: 12, fontSize: 15, fontWeight: 700, color: "var(--text-1)" }}>
+            Model Aktivasyonu
+          </h2>
+          <p style={{ fontSize: 13, color: "var(--text-2)", marginBottom: 16 }}>
+            Eğitim tamamlandı. Model ID: <code>{activatingJob.result_model_version_id.slice(0, 8)}…</code>
+            — aktifleştirmek, bu modelin inference'da kullanılmasını sağlar.
+          </p>
+          <div style={{ display: "flex", gap: 12, alignItems: "flex-end" }}>
+            <div className="form-group" style={{ margin: 0 }}>
+              <label className="form-label">Run modu</label>
+              <select
+                className="form-input"
+                value={activateRunMode}
+                onChange={e => setActivateRunMode(e.target.value as "default" | "comparison")}
+                style={{ width: 180 }}
+              >
+                <option value="comparison">comparison — doktor isteğiyle</option>
+                <option value="default">default — otomatik çalışır</option>
+              </select>
+            </div>
+            <button
+              className="btn btn-primary"
+              disabled={activateMutation.isPending}
+              onClick={() => activateMutation.mutate(activatingJob.result_model_version_id!)}
+            >
+              {activateMutation.isPending
+                ? <><span className="spinner" />Aktifleştiriliyor…</>
+                : "Aktifleştir"
+              }
+            </button>
+            <button
+              className="btn btn-secondary"
+              onClick={() => setActivatingJobId(null)}
+            >
+              İptal
+            </button>
+          </div>
+        </section>
+      )}
 
       {/* ── Log viewer ── */}
       {viewLogId && (

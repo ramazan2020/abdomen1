@@ -54,6 +54,7 @@ const DOCTOR_NAV: NavItem[] = [
 const ADMIN_NAV: NavItem[] = [
   { href: "/admin/models",    label: "Model Registry",    icon: "cpu" },
   { href: "/admin/training",  label: "Eğitim Yönetimi",  icon: "activity" },
+  { href: "/admin/datasets",  label: "Veri Setleri",      icon: "database" },
 ];
 
 export function AppSidebar() {

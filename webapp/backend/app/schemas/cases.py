@@ -6,6 +6,7 @@ from pydantic import BaseModel
 
 class CaseResponse(BaseModel):
     id: UUID
+    dataset_id: UUID | None
     case_label: str | None
     status: str
     review_status: str
@@ -19,6 +20,7 @@ class CaseResponse(BaseModel):
 
 class CaseListItem(BaseModel):
     id: UUID
+    dataset_id: UUID | None
     case_label: str | None
     status: str
     review_status: str

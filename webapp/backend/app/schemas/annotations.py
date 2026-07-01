@@ -36,6 +36,10 @@ class AnnotationResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class AnnotationTrainingPoolRequest(BaseModel):
+    in_pool: bool
+
+
 class AnnotationZipImportDetail(BaseModel):
     case_num: str
     prefix: str

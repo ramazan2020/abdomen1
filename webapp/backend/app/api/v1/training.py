@@ -17,11 +17,11 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.responses import PlainTextResponse
-from sqlalchemy import select, desc
+from sqlalchemy import func, select, desc
 from sqlalchemy.orm import Session
 
 from app.core.deps import get_db, require_admin, require_doctor_or_admin
-from app.db.models import DatasetSnapshot, TrainingJob, User
+from app.db.models import Annotation, Case, DatasetSnapshot, TrainingJob, User
 from app.schemas.training import (
     CreateSnapshotRequest,
     LaunchJobRequest,
@@ -34,6 +34,48 @@ from app.services.storage_service import get_storage_backend
 router = APIRouter(prefix="/training", tags=["training"])
 
 
+# ── İstatistikler ─────────────────────────────────────────────────────────────
+
+@router.get("/stats")
+def get_training_stats(
+    db: Session = Depends(get_db),
+    _user: User = Depends(require_admin),
+) -> dict:
+    """Eğitim havuzu istatistikleri: case review_status dağılımı + annotation havuzu + sınıf dağılımı."""
+    # Case review_status sayımı
+    review_rows = db.execute(
+        select(Case.review_status, func.count(Case.id).label("n"))
+        .group_by(Case.review_status)
+    ).all()
+    review_counts = {r.review_status: r.n for r in review_rows}
+
+    # Havuzdaki annotation sayısı (active + included_in_training_pool)
+    pool_total = db.execute(
+        select(func.count(Annotation.id)).where(
+            Annotation.status == "active",
+            Annotation.included_in_training_pool.is_(True),
+        )
+    ).scalar() or 0
+
+    # Sınıf dağılımı (havuzdaki, active)
+    class_rows = db.execute(
+        select(Annotation.class_id, func.count(Annotation.id).label("n"))
+        .where(
+            Annotation.status == "active",
+            Annotation.included_in_training_pool.is_(True),
+        )
+        .group_by(Annotation.class_id)
+        .order_by(Annotation.class_id)
+    ).all()
+    class_distribution = {str(r.class_id): r.n for r in class_rows}
+
+    return {
+        "review_status_counts": review_counts,
+        "pool_annotation_count": pool_total,
+        "class_distribution": class_distribution,
+    }
+
+
 # ── Snapshot ─────────────────────────────────────────────────────────────────
 
 @router.post("/snapshots", response_model=SnapshotDto, status_code=status.HTTP_201_CREATED)
@@ -43,12 +85,14 @@ def create_snapshot(
     actor: User = Depends(require_admin),
 ):
     try:
+        ds_id = uuid.UUID(body.dataset_id) if body.dataset_id else None
         snap = dataset_export_service.build_snapshot(
             db,
             snapshot_name=body.snapshot_name,
             description=body.description,
             notes=body.notes,
             actor_id=actor.id,
+            dataset_id=ds_id,
         )
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

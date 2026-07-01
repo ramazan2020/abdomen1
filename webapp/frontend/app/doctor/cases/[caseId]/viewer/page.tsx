@@ -92,6 +92,12 @@ export default function ViewerPage({ params }: { params: { caseId: string } }) {
     onSuccess: invalidateAnnotations,
   });
 
+  const poolMutation = useMutation({
+    mutationFn: (vars: { id: string; in_pool: boolean }) =>
+      api.patch(`/annotations/${vars.id}/training-pool`, { in_pool: vars.in_pool }),
+    onSuccess: invalidateAnnotations,
+  });
+
   if (!slices) return <p style={{ padding: 24 }}>Yükleniyor...</p>;
 
   const selected = annotations?.find((a) => a.id === selectedId) ?? null;
@@ -155,11 +161,32 @@ export default function ViewerPage({ params }: { params: { caseId: string } }) {
                     borderRadius: 6,
                     cursor: "pointer",
                     background: a.id === selectedId ? "#2a2e38" : "transparent",
-                    border: "1px solid #2a2e38",
+                    border: `1px solid ${a.included_in_training_pool ? "var(--success)" : "#2a2e38"}`,
                     fontSize: 13,
                   }}
                 >
-                  <div>{a.geometry_type} · sınıf {a.class_id}</div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span>{a.geometry_type} · sınıf {a.class_id}</span>
+                    <button
+                      title={a.included_in_training_pool ? "Havuzdan çıkar" : "Eğitim havuzuna ekle"}
+                      onClick={e => {
+                        e.stopPropagation();
+                        poolMutation.mutate({ id: a.id, in_pool: !a.included_in_training_pool });
+                      }}
+                      style={{
+                        background: a.included_in_training_pool ? "var(--success)" : "transparent",
+                        border: `1px solid ${a.included_in_training_pool ? "var(--success)" : "#4a5568"}`,
+                        borderRadius: 4,
+                        color: a.included_in_training_pool ? "#07101c" : "#9aa0ab",
+                        cursor: "pointer",
+                        fontSize: 10,
+                        padding: "2px 6px",
+                        fontWeight: 600,
+                      }}
+                    >
+                      {a.included_in_training_pool ? "✓ Havuz" : "+ Havuz"}
+                    </button>
+                  </div>
                   <div style={{ color: "#9aa0ab" }}>
                     {a.source}
                     {a.confidence != null ? ` (${(a.confidence * 100).toFixed(0)}%)` : ""}

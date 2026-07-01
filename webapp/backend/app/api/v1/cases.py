@@ -8,11 +8,12 @@ from sqlalchemy.orm import Session
 from app.core.deps import get_current_user, require_admin, require_doctor_or_admin
 from app.db.models import (
     Annotation, AnnotationAuditLog, AnnotationGroup,
-    Case, CaseSlice, ClassificationPrediction,
+    Case, CaseSlice, ClassificationPrediction, Dataset,
     DataAccessLog, InferenceBatch, InferenceRun, User,
 )
 from app.db.session import get_db
 from app.schemas.cases import CaseListItem, CaseResponse, ReviewStatusUpdateRequest
+from app.schemas.datasets import DatasetAssignRequest
 from app.services.dicom_ingest import ingest_case
 from app.services.job_queue import get_queue
 from app.services.png_cache_service import get_or_generate_png_bytes
@@ -28,13 +29,20 @@ _DOCTOR_ALLOWED_TRANSITIONS = {"unreviewed", "in_review", "reviewed"}
 async def upload_case(
     file: UploadFile = File(...),
     case_label: str | None = Form(default=None),
+    dataset_id: str | None = Form(default=None),
     db: Session = Depends(get_db),
     user: User = Depends(require_doctor_or_admin),
 ) -> Case:
     if not file.filename or not file.filename.lower().endswith(".zip"):
         raise HTTPException(status_code=422, detail="Sadece .zip yükleme desteklenir")
 
-    case = Case(case_label=case_label, uploaded_by=user.id, storage_key="", status="uploaded")
+    ds_id: uuid.UUID | None = None
+    if dataset_id:
+        ds_id = uuid.UUID(dataset_id)
+        if db.get(Dataset, ds_id) is None:
+            raise HTTPException(status_code=404, detail="Veri seti bulunamadı")
+
+    case = Case(case_label=case_label, uploaded_by=user.id, storage_key="", status="uploaded", dataset_id=ds_id)
     db.add(case)
     db.commit()
     db.refresh(case)
@@ -59,6 +67,7 @@ async def upload_case(
 @router.get("", response_model=list[CaseListItem])
 def list_cases(
     review_status: str | None = Query(default=None),
+    dataset_id: str | None = Query(default=None),
     db: Session = Depends(get_db),
     _user: User = Depends(get_current_user),
 ) -> list[Case]:
@@ -67,6 +76,8 @@ def list_cases(
         if review_status not in _REVIEW_STATUSES:
             raise HTTPException(status_code=422, detail="Geçersiz review_status")
         stmt = stmt.where(Case.review_status == review_status)
+    if dataset_id:
+        stmt = stmt.where(Case.dataset_id == uuid.UUID(dataset_id))
     return list(db.execute(stmt).scalars().all())
 
 
@@ -133,6 +144,27 @@ def get_slice_png(
         raise HTTPException(status_code=404, detail="Dilim bulunamadı")
     png_bytes = get_or_generate_png_bytes(db, case_slice)
     return Response(content=png_bytes, media_type="image/png")
+
+
+@router.patch("/{case_id}/dataset", response_model=CaseResponse)
+def assign_dataset(
+    case_id: uuid.UUID,
+    payload: DatasetAssignRequest,
+    db: Session = Depends(get_db),
+    _user: User = Depends(require_doctor_or_admin),
+) -> Case:
+    case = _get_case_or_404(db, case_id)
+    if payload.dataset_id:
+        ds_id = uuid.UUID(payload.dataset_id)
+        if db.get(Dataset, ds_id) is None:
+            raise HTTPException(status_code=404, detail="Veri seti bulunamadı")
+        case.dataset_id = ds_id
+    else:
+        case.dataset_id = None
+    db.add(case)
+    db.commit()
+    db.refresh(case)
+    return case
 
 
 @router.delete("/{case_id}", status_code=status.HTTP_204_NO_CONTENT)
