@@ -1,0 +1,10 @@
+storage/
+**/__pycache__/
+*.pyc
+frontend/node_modules/
+frontend/.next/
+backend/.env
+.env
+
+# Gerçek (kimlikli) DICOM içerir — KVKK gereği asla commit edilmemeli
+scripts/sample_zips/

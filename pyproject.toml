@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "abdomen-ml"
+version = "0.1.0"
+description = "Abdomen CT lezyon tespiti/segmentasyonu araştırma pipeline'ı (src/)"
+requires-python = ">=3.10"
+
+# Bilerek `dependencies` listesinde DEĞİL: webapp/backend image'ı bunlarsız
+# (torch/ultralytics olmadan) inşa edilir, sadece job orkestrasyonu/CRUD
+# çalışır (plan Bölüm 1). GPU sunucusunda inference/eğitim gerçekten
+# çalışabilsin diye worker image'ına ek olarak şu kurulur:
+#   pip install -e ".[ml]"
+[project.optional-dependencies]
+ml = [
+    "torch>=2.2",
+    "torchvision>=0.17",
+    "ultralytics>=8.1",
+    "opencv-python>=4.9",
+    "SimpleITK>=2.3",
+]
+
+[tool.setuptools]
+packages = ["src"]

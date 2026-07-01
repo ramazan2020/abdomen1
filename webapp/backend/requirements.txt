@@ -1,0 +1,25 @@
+fastapi==0.115.6
+uvicorn[standard]==0.32.1
+sqlalchemy==2.0.36
+alembic==1.14.0
+psycopg2-binary==2.9.10
+pydantic==2.10.3
+pydantic-settings==2.6.1
+email-validator==2.2.0
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+bcrypt==4.0.1  # passlib 1.7.4, bcrypt>=4.1'in kaldırdığı __about__ özniteliğine bakıyor
+python-multipart==0.0.20
+redis==5.2.1
+rq==2.1.0
+pydicom==2.4.4
+numpy>=1.24
+Pillow>=10.0
+pandas>=2.0
+tqdm>=4.66
+
+# Not: ultralytics/torch/opencv buraya BİLEREK eklenmedi — src/detection.py vb.
+# bu importları fonksiyon içinde (lazy) yapıyor; bu sayede backend, GPU/torch
+# kurulu olmayan ortamlarda da auth/case-upload/annotation CRUD için ayağa
+# kalkabiliyor (bkz. plan Bölüm 1). GPU sunucusu imajında ayrıca
+# `pip install -e .[ml]` ile src/'in ML bağımlılıkları kurulacak.
