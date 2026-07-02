@@ -69,6 +69,14 @@ export default function AdminDatasetsPage() {
     },
   });
 
+  const deleteCaseMutation = useMutation({
+    mutationFn: (caseId: string) => api.del(`/cases/${caseId}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["cases-by-dataset", selectedId] });
+      qc.invalidateQueries({ queryKey: ["datasets"] });
+    },
+  });
+
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) { setFormError("Ad zorunludur"); return; }
@@ -354,13 +362,25 @@ export default function AdminDatasetsPage() {
                         {new Date(c.created_at).toLocaleDateString("tr-TR")}
                       </td>
                       <td>
-                        <button
-                          className="btn btn-secondary btn-sm"
-                          onClick={() => unassignMutation.mutate(c.id)}
-                          disabled={unassignMutation.isPending}
-                        >
-                          Kaldır
-                        </button>
+                        <div style={{ display: "flex", gap: 6 }}>
+                          <button
+                            className="btn btn-secondary btn-sm"
+                            onClick={() => unassignMutation.mutate(c.id)}
+                            disabled={unassignMutation.isPending || deleteCaseMutation.isPending}
+                          >
+                            Kaldır
+                          </button>
+                          <button
+                            className="btn btn-danger btn-sm"
+                            onClick={() => {
+                              if (window.confirm(`"${c.case_label ?? c.id.slice(0, 8)}" vakası kalıcı olarak silinecek. Emin misiniz?`))
+                                deleteCaseMutation.mutate(c.id);
+                            }}
+                            disabled={deleteCaseMutation.isPending || unassignMutation.isPending}
+                          >
+                            Sil
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );

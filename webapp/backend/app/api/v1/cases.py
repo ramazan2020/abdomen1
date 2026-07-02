@@ -167,6 +167,52 @@ def assign_dataset(
     return case
 
 
+@router.delete("", status_code=status.HTTP_204_NO_CONTENT)
+def delete_cases_by_dataset(
+    dataset_id: uuid.UUID = Query(...),
+    db: Session = Depends(get_db),
+    _user: User = Depends(require_admin),
+) -> None:
+    """Bir veri setine ait tüm vakaları kalıcı olarak siler (admin only).
+    Her vaka için delete_case mantığının aynısı uygulanır."""
+    case_ids = db.execute(
+        select(Case.id).where(Case.dataset_id == dataset_id)
+    ).scalars().all()
+
+    storage = get_storage_backend()
+    for case_id in case_ids:
+        # Storage dosyaları
+        for cs in db.execute(select(CaseSlice).where(CaseSlice.case_id == case_id)).scalars().all():
+            for key in (cs.dicom_storage_key, cs.png_storage_key):
+                if key:
+                    try:
+                        storage.delete(key)
+                    except Exception:
+                        pass
+
+        ann_ids = db.execute(
+            select(Annotation.id).where(Annotation.case_id == case_id)
+        ).scalars().all()
+        if ann_ids:
+            db.execute(delete(AnnotationAuditLog).where(AnnotationAuditLog.annotation_id.in_(ann_ids)))
+
+        db.execute(delete(Annotation).where(Annotation.case_id == case_id))
+        db.execute(delete(AnnotationGroup).where(AnnotationGroup.case_id == case_id))
+        db.execute(delete(ClassificationPrediction).where(ClassificationPrediction.case_id == case_id))
+
+        batch_ids = db.execute(
+            select(InferenceBatch.id).where(InferenceBatch.case_id == case_id)
+        ).scalars().all()
+        if batch_ids:
+            db.execute(delete(InferenceRun).where(InferenceRun.batch_id.in_(batch_ids)))
+        db.execute(delete(InferenceBatch).where(InferenceBatch.case_id == case_id))
+        db.execute(delete(CaseSlice).where(CaseSlice.case_id == case_id))
+        db.execute(delete(DataAccessLog).where(DataAccessLog.case_id == case_id))
+
+    db.execute(delete(Case).where(Case.dataset_id == dataset_id))
+    db.commit()
+
+
 @router.delete("/{case_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_case(case_id: uuid.UUID, db: Session = Depends(get_db), _user: User = Depends(require_doctor_or_admin)) -> None:
     """KVKK Bölüm 3: kalıcı silme — doktor ve admin yetkilidir.

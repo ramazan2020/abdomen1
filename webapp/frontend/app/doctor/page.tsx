@@ -30,6 +30,8 @@ export default function DoctorWorklistPage() {
   const [uploadDatasetId, setUploadDatasetId] = useState<string>("");
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const { data: datasets = [] } = useQuery<DatasetDto[]>({
     queryKey: ["datasets"],
@@ -53,6 +55,7 @@ export default function DoctorWorklistPage() {
     onSuccess: () => {
       setDeletingId(null);
       queryClient.invalidateQueries({ queryKey: ["cases"] });
+      queryClient.invalidateQueries({ queryKey: ["datasets"] });
     },
   });
 
@@ -62,6 +65,46 @@ export default function DoctorWorklistPage() {
       setDeletingId(c.id);
       deleteMutation.mutate(c.id);
     }
+  }
+
+  async function handleBulkDelete() {
+    if (selectedIds.size === 0) return;
+    if (!window.confirm(`${selectedIds.size} vaka kalıcı olarak silinecek. Emin misiniz?\n\nBu işlem geri alınamaz.`)) return;
+    setBulkDeleting(true);
+    await Promise.allSettled([...selectedIds].map(id => api.del(`/cases/${id}`)));
+    setSelectedIds(new Set());
+    setBulkDeleting(false);
+    queryClient.invalidateQueries({ queryKey: ["cases"] });
+    queryClient.invalidateQueries({ queryKey: ["datasets"] });
+  }
+
+  async function handleDeleteByDataset() {
+    if (!datasetFilter) return;
+    const ds = datasets.find(d => d.id === datasetFilter);
+    const name = ds?.name ?? datasetFilter;
+    const count = cases?.length ?? 0;
+    if (!window.confirm(`"${name}" veri setindeki ${count} vakanın tamamı kalıcı olarak silinecek.\n\nBu işlem geri alınamaz.`)) return;
+    setBulkDeleting(true);
+    await api.del(`/cases?dataset_id=${datasetFilter}`);
+    setSelectedIds(new Set());
+    setBulkDeleting(false);
+    queryClient.invalidateQueries({ queryKey: ["cases"] });
+    queryClient.invalidateQueries({ queryKey: ["datasets"] });
+  }
+
+  function toggleSelect(id: string) {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (!cases) return;
+    setSelectedIds(prev =>
+      prev.size === cases.length ? new Set() : new Set(cases.map(c => c.id))
+    );
   }
 
   const uploadMutation = useMutation({
@@ -232,11 +275,34 @@ export default function DoctorWorklistPage() {
 
       <section className="card">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
-          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "var(--text-1)" }}>Vakalar</h2>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "var(--text-1)" }}>Vakalar</h2>
+            {selectedIds.size > 0 && (
+              <button
+                className="btn btn-danger btn-sm"
+                onClick={handleBulkDelete}
+                disabled={bulkDeleting}
+              >
+                {bulkDeleting
+                  ? <><span className="spinner" /> Siliniyor…</>
+                  : `Seçilenleri Sil (${selectedIds.size})`}
+              </button>
+            )}
+            {datasetFilter && selectedIds.size === 0 && (
+              <button
+                className="btn btn-danger btn-sm"
+                onClick={handleDeleteByDataset}
+                disabled={bulkDeleting || !cases?.length}
+                title="Bu veri setindeki tüm vakaları sil"
+              >
+                {bulkDeleting ? <><span className="spinner" /> Siliniyor…</> : "Veri Setini Temizle"}
+              </button>
+            )}
+          </div>
           <div style={{ display: "flex", gap: 8 }}>
             <select
               value={datasetFilter}
-              onChange={(e) => setDatasetFilter(e.target.value)}
+              onChange={(e) => { setDatasetFilter(e.target.value); setSelectedIds(new Set()); }}
               style={{ padding: 6, borderRadius: 6, background: "#0f1115", color: "#e6e6e6", border: "1px solid #3a3e48" }}
             >
               <option value="">Tüm veri setleri</option>
@@ -246,7 +312,7 @@ export default function DoctorWorklistPage() {
             </select>
             <select
               value={reviewFilter}
-              onChange={(e) => setReviewFilter(e.target.value)}
+              onChange={(e) => { setReviewFilter(e.target.value); setSelectedIds(new Set()); }}
               style={{ padding: 6, borderRadius: 6, background: "#0f1115", color: "#e6e6e6", border: "1px solid #3a3e48" }}
             >
               <option value="">Tüm review durumları</option>
@@ -265,6 +331,14 @@ export default function DoctorWorklistPage() {
           <table>
             <thead>
               <tr>
+                <th style={{ width: 36 }}>
+                  <input
+                    type="checkbox"
+                    checked={cases.length > 0 && selectedIds.size === cases.length}
+                    ref={el => { if (el) el.indeterminate = selectedIds.size > 0 && selectedIds.size < cases.length; }}
+                    onChange={toggleSelectAll}
+                  />
+                </th>
                 <th>Etiket</th>
                 <th>Durum</th>
                 <th>Review</th>
@@ -275,7 +349,20 @@ export default function DoctorWorklistPage() {
             </thead>
             <tbody>
               {cases.map((c) => (
-                <tr key={c.id} style={{ opacity: deletingId === c.id ? 0.4 : 1 }}>
+                <tr
+                  key={c.id}
+                  style={{
+                    opacity: deletingId === c.id ? 0.4 : 1,
+                    background: selectedIds.has(c.id) ? "var(--accent-muted, #1e293b)" : undefined,
+                  }}
+                >
+                  <td>
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(c.id)}
+                      onChange={() => toggleSelect(c.id)}
+                    />
+                  </td>
                   <td>{c.case_label ?? <span style={{ color: "#9aa0ab" }}>(etiketsiz)</span>}</td>
                   <td>
                     <span

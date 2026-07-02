@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, fetchSlicePngBlobUrl } from "@/lib/api-client";
-import { AnnotationDto, SliceInfo } from "@/lib/types";
+import { AnnotationDto, CLASS_COLORS, LESION_CLASS_LABELS_TR, SliceInfo } from "@/lib/types";
 import { SliceScrubber } from "@/components/viewer/SliceScrubber";
 import { ClassPicker } from "@/components/viewer/ClassPicker";
 import type { Tool } from "@/components/viewer/AnnotationOverlay";
@@ -166,7 +166,13 @@ export default function ViewerPage({ params }: { params: { caseId: string } }) {
                   }}
                 >
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span>{a.geometry_type} · sınıf {a.class_id}</span>
+                    <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <span style={{ width: 8, height: 8, borderRadius: "50%", background: CLASS_COLORS[a.class_id] ?? "#888", flexShrink: 0 }} />
+                      <span style={{ color: CLASS_COLORS[a.class_id] ?? "inherit", fontWeight: 600 }}>
+                        {LESION_CLASS_LABELS_TR[a.class_id] ?? `Sınıf ${a.class_id}`}
+                      </span>
+                      <span style={{ color: "var(--text-3)", fontSize: 11 }}>({a.geometry_type})</span>
+                    </span>
                     <button
                       title={a.included_in_training_pool ? "Havuzdan çıkar" : "Eğitim havuzuna ekle"}
                       onClick={e => {
