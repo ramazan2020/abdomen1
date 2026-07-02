@@ -16,6 +16,8 @@ docker compose up -d --force-recreate frontend
 python -m app.scripts.bootstrap_admin --email admin@example.com --password Admin1234! --name "Yönetici"
 python -m app.scripts.bootstrap_admin --email doktor@example.com --password doktor1234! --name "Doktor"
 
+  
+
 python webapp/scripts/bulk_import.py `
   --source train `
   --email "admin@example.com" `
@@ -30,3 +32,7 @@ python webapp/scripts/bulk_import.py `
   --email "admin@example.com" `
   --password "Admin1234!" `
   --dataset "Abdomen"
+
+
+
+pip install "transformers>=4.40" --quiet 2>&1 | tail -20

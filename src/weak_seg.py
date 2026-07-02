@@ -2,12 +2,19 @@
 Weakly Supervised 3D Disease Localization
 
 BB annotasyonları (2D, kesit bazlı) + TotalSegmentator organ maskeleri (3D)
-→ Hastalığın 3D lokalizasyonu (weakly supervised, pseudo-label değil)
++ MedSAM (box-prompt) lezyon maskesi → Hastalığın 3D lokalizasyonu
+(weakly supervised, pseudo-label değil)
 
 Yöntem:
   1. TotalSegmentator inference → anatomik organ maskeleri (sadece inference)
   2. Her hastalık sınıfı için ilgili organı seç
-  3. BB annotasyonlu kesitlerde : BB_bölgesi ∩ organ_maskesi
+  3. BB annotasyonlu kesitlerde : MedSAM(BB) ∩ organ_maskesi
+     (MedSAM kutunun içindeki lezyonun piksel-hassas sınırını tahmin eder;
+      organ maskesiyle kesişim anatomik olarak imkansız pikselleri eler.
+      Kesişim boşsa MedSAM maskesi, o da boşsa BB dikdörtgeni kullanılır.)
+  3b. kidney_ureter_stone sınıfında ayrıca BB içindeki yüksek-HU (taş
+      yoğunluğu) vokseller maskeye eklenir — MedSAM doğal görüntü ön-eğitimli
+      olduğundan küçük/parlak taşları bazen atlayabiliyor.
   4. Boundary Slice z-aralığındaki diğer kesitlerde : organ_maskesi
   5. Z-aralığı dışında : background (0)
   Çıktı: çok-sınıflı 3D NIfTI  (0=bg, 1..6=hastalık sınıfı)
@@ -32,7 +39,23 @@ except Exception:                      # pragma: no cover
 from .config import (SPLIT_DIR, EGITIM_DIR, YARISMA_DIR,
                      SEG_DATA_DIR, SUPER_CLASSES, DEFAULT_SEG)
 from .dicom_utils import load_series, load_series_ids
+from .medsam_seg import medsam_box_to_mask
 from .segmentation import _dicom_to_nifti
+from .splits import raw_case_id
+
+
+def _case_num(cid) -> int:
+    """Manifest 'case' değeri ("T_20001"/"C_20001") veya çıplak int → disk üzerindeki
+    numerik vaka id'si. DICOM dizinleri ve çıktı dosya adları bu numarayla adlandırılır;
+    manifest'teki "case" sütunu ise kaynağı (T_=train/C_=comp) ayırt etmek için önek taşır."""
+    return raw_case_id(cid) if isinstance(cid, str) else int(cid)
+
+# kidney_ureter_stone (disease_id=1) için ek HU eşiği: idrar yolu taşları
+# tipik olarak >150 HU'dur (yumuşak doku/enflamasyondan çok daha yoğun);
+# MedSAM doğal-görüntü ön-eğitimli olduğundan küçük/parlak taşları bazen
+# gözden kaçırabiliyor, bu eşik BB içinde kaçırılanları geri ekler.
+STONE_DISEASE_ID = 1
+STONE_HU_MIN = 150.0
 
 # ---------------------------------------------------------------------------
 # Sabitler
@@ -74,6 +97,12 @@ def _best_device() -> str:
     except Exception:
         pass
     return "cpu"
+
+
+def _torch_device(dev: Optional[str] = None) -> str:
+    """TotalSegmentator'ın "gpu" adlandırmasını torch'un "cuda" adına çevirir."""
+    dev = dev or _best_device()
+    return "cuda" if dev == "gpu" else dev
 
 
 # TotalSegmentator'da kullandığımız 6 organ → sadece bunlar segmente edilir
@@ -173,17 +202,26 @@ def _parse_annotations(case_rows: pd.DataFrame,
 def _make_disease_mask(bb_by_disease: Dict[int, List],
                        boundary_zrange: Dict[str, Tuple[int, int]],
                        ts_dir: Path,
-                       shape_zyx: Tuple[int, ...]) -> np.ndarray:
+                       shape_zyx: Tuple[int, ...],
+                       hu: Optional[np.ndarray] = None,
+                       use_medsam: bool = True,
+                       device: Optional[str] = None) -> np.ndarray:
     """
-    BB + organ maskesi → çok-sınıflı 3D hastalık maskesi.
+    BB + organ maskesi + MedSAM → çok-sınıflı 3D hastalık maskesi.
 
     Kural:
-      • BB'li kesitler  : BB_bölgesi ∩ organ_maskesi
-                          (örtüşme yoksa BB_bölgesi doğrudan kullanılır)
+      • BB'li kesitler  : MedSAM(BB) ∩ organ_maskesi
+                          (kesişim boşsa MedSAM maskesi, o da yoksa/kapalıysa
+                          BB_bölgesi doğrudan kullanılır)
+      • Taş sınıfı      : BB içindeki HU>=STONE_HU_MIN vokseller ek olarak dahil edilir
       • Arası kesitler  : organ_maskesi  (boundary z-aralığı içinde)
       • Dışı            : 0 (background)
+
+    `hu` verilmezse (None) veya `use_medsam=False` ise eski davranışa
+    (BB dikdörtgeni ∩ organ maskesi) döner.
     """
     out = np.zeros(shape_zyx, dtype=np.uint8)
+    dev = _torch_device(device)
 
     for disease_id, bb_list in bb_by_disease.items():
         organ_name = DISEASE_TO_ORGAN.get(disease_id)
@@ -210,8 +248,21 @@ def _make_disease_mask(bb_by_disease: Dict[int, List],
                 continue
             roi = np.zeros(shape_zyx[1:], dtype=np.uint8)
             roi[y1:y2, x1:x2] = 1
-            hit = organ_mask[z] & roi
-            out[z][hit > 0 if hit.sum() > 0 else roi > 0] = label
+
+            lesion = roi
+            if use_medsam and hu is not None:
+                try:
+                    lesion = medsam_box_to_mask(hu[z], (x1, y1, x2, y2), device=dev)
+                except Exception as exc:
+                    print(f"  [uyari] MedSAM basarisiz (z={z}): {exc}")
+                    lesion = roi
+
+            if disease_id == STONE_DISEASE_ID and hu is not None:
+                stone = ((hu[z] >= STONE_HU_MIN) & (roi > 0)).astype(np.uint8)
+                lesion = np.maximum(lesion, stone)
+
+            hit = organ_mask[z] & lesion
+            out[z][hit > 0 if hit.sum() > 0 else lesion > 0] = label
             bb_z_set.add(z)
 
         # 2) Boundary z-aralığındaki diğer kesitler: organ maskesi
@@ -229,7 +280,8 @@ def generate_weak_masks(limit: Optional[int] = None,
                         out_dir: Path = OUT_DIR,
                         totalseg_fast: bool = True,
                         device: Optional[str] = None,
-                        n_dicom_workers: int = 4) -> None:
+                        n_dicom_workers: int = 4,
+                        use_medsam: bool = True) -> None:
     """
     BB annotasyonu olan her vaka için weakly supervised 3D hastalık maskesi üretir.
 
@@ -244,6 +296,8 @@ def generate_weak_masks(limit: Optional[int] = None,
         totalseg_fast   : TotalSegmentator fast modu
         device          : "mps"|"gpu"|"cpu"|None (None=otomatik seç)
         n_dicom_workers : Paralel DICOM→NIfTI worker sayısı
+        use_medsam      : BB kesitlerinde MedSAM box-prompt rafinajı (+ taş HU
+                          eşiği) aç/kapa. False → eski davranış (BB ∩ organ maskesi).
     """
     if sitk is None:
         raise RuntimeError("SimpleITK gerekli: pip install SimpleITK")
@@ -263,12 +317,14 @@ def generate_weak_masks(limit: Optional[int] = None,
     if limit is not None:
         case_ids = case_ids[:limit]
 
-    # Vaka → DICOM dizini eşlemesi
-    case_dirs: Dict[int, Path] = {}
+    # Vaka → DICOM dizini eşlemesi (dizinler numerik id ile adlandırılmış; manifest
+    # "case" sütunu T_/C_ önekli — _case_num() ile numaraya çevrilir)
+    case_dirs: Dict[str, Path] = {}
     for cid in case_ids:
+        num = _case_num(cid)
         d = next(
-            (b / str(cid) for b in (EGITIM_DIR, YARISMA_DIR)
-             if (b / str(cid)).is_dir()),
+            (b / str(num) for b in (EGITIM_DIR, YARISMA_DIR)
+             if (b / str(num)).is_dir()),
             None,
         )
         if d:
@@ -279,13 +335,13 @@ def generate_weak_masks(limit: Optional[int] = None,
         print(f"  [uyarı] {len(missing)} vaka dizini bulunamadı, atlanıyor.")
 
     todo = [cid for cid in case_ids if cid in case_dirs
-            and not (out_dir / f"ABE_{cid:05d}_disease.nii.gz").exists()]
+            and not (out_dir / f"ABE_{_case_num(cid):05d}_disease.nii.gz").exists()]
 
     print(f"BB annotasyonlu vaka: {len(case_ids)}  |  işlenecek: {len(todo)}")
 
     # ── Adım 1: Paralel DICOM → NIfTI (I/O bound) ────────────────────────
-    def _convert(cid: int) -> tuple:
-        nii = out_dir / f"ABE_{cid:05d}_0000.nii.gz"
+    def _convert(cid) -> tuple:
+        nii = out_dir / f"ABE_{_case_num(cid):05d}_0000.nii.gz"
         if nii.exists():
             return cid, None
         try:
@@ -305,8 +361,9 @@ def generate_weak_masks(limit: Optional[int] = None,
     # ── Adım 2: TotalSegmentator + maske üretimi (sıralı) ────────────────
     skipped, done = 0, 0
     for case_id in tqdm(todo, desc="TotalSeg+Maske"):
-        out_path = out_dir / f"ABE_{case_id:05d}_disease.nii.gz"
-        nii_path = out_dir / f"ABE_{case_id:05d}_0000.nii.gz"
+        case_num = _case_num(case_id)
+        out_path = out_dir / f"ABE_{case_num:05d}_disease.nii.gz"
+        nii_path = out_dir / f"ABE_{case_num:05d}_0000.nii.gz"
 
         if not nii_path.exists():
             skipped += 1
@@ -317,7 +374,7 @@ def generate_weak_masks(limit: Optional[int] = None,
             shape_zyx = sitk.GetArrayFromImage(ref).shape
 
             # TotalSegmentator inference — başarısız olursa BB-only moda geç
-            ts_dir = out_dir / "ts" / str(case_id)
+            ts_dir = out_dir / "ts" / str(case_num)
             ts_dir.mkdir(parents=True, exist_ok=True)
             if not any(ts_dir.glob("*.nii.gz")):
                 try:
@@ -328,9 +385,11 @@ def generate_weak_masks(limit: Optional[int] = None,
                     # BB kesitlerinde mevcut fallback (roi doğrudan) devreye girer.
                     print(f"  [uyari] TotalSeg hatasi, BB-only mod: {ts_exc}")
 
-            # Annotasyonları çözümle — piksel yüklemeye gerek yok, sadece z-sıralı id'ler
-            image_ids     = load_series_ids(case_dirs[case_id])
             case_rows     = manifest[manifest["case"] == case_id]
+            # MedSAM box-prompt + taş HU eşiği için piksel verisi de gerekiyor
+            # (önceden sadece load_series_ids() ile z-sıralı id'ler yeterliydi).
+            series        = load_series(case_dirs[case_id]) if use_medsam else None
+            image_ids     = series.image_ids if series is not None else load_series_ids(case_dirs[case_id])
             bb_by_dis, bz = _parse_annotations(case_rows, image_ids)
 
             if not bb_by_dis:
@@ -338,7 +397,9 @@ def generate_weak_masks(limit: Optional[int] = None,
                 continue
 
             # 3D hastalık maskesi
-            mask = _make_disease_mask(bb_by_dis, bz, ts_dir, shape_zyx)
+            hu_vol = series.hu if series is not None else None
+            mask = _make_disease_mask(bb_by_dis, bz, ts_dir, shape_zyx,
+                                      hu=hu_vol, use_medsam=use_medsam, device=dev)
 
             # Kaydet
             out_img = sitk.GetImageFromArray(mask)

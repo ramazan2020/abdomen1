@@ -31,7 +31,7 @@ Cikti formati (annotations.json icinde):
 
 Kullanim:
     python webapp/scripts/make_annotation_zip.py
-    python webapp/scripts/make_annotation_zip.py --source comp --cases 20001 20002
+    python webapp/scripts/make_annotation_zip.py --source comp --cases T_20001 T_20002 T_20003 T_20004 T_20005
     python webapp/scripts/make_annotation_zip.py --out D:/tmp/egitim_ann.zip
 """
 from __future__ import annotations

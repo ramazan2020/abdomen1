@@ -375,7 +375,7 @@ def phase_annotations(
 # ---------------------------------------------------------------------------
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--source", choices=["train", "comp", "both"], default="both",
+    parser.add_argument("--source", choices=["train", "comp", "both"], default="train",
                         help="train=T_, comp=C_, both=ikisi (varsayılan)")
     parser.add_argument("--dataset", default="Abdomen",
                         help="Hedef dataset adı (varsayılan: Abdomen)")

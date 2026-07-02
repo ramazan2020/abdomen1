@@ -20,6 +20,7 @@ ml = [
     "ultralytics>=8.1",
     "opencv-python>=4.9",
     "SimpleITK>=2.3",
+    "transformers>=4.40",  # MedSAM (wanglab/medsam-vit-base) box-prompt segmentasyonu için
 ]
 
 [tool.setuptools]
